@@ -1,0 +1,79 @@
+polymarket:
+  base_urls:
+    gamma: "https://gamma-api.polymarket.com"
+    clob: "https://clob.polymarket.com"
+
+weather:
+  open_meteo:
+    ensemble_url: "https://ensemble-api.open-meteo.com/v1/ensemble"
+    forecast_url: "https://api.open-meteo.com/v1/forecast"
+  noaa:
+    api_url: "https://api.weather.gov"
+    aviation_weather_url: "https://aviationweather.gov/api/data"
+  models:
+    - "ecmwf_ifs025"    # 50 members — best global model
+    - "gfs025"          # 30 members — NOAA operational
+    - "icon_seamless"   # 39 members — DWD, excellent Europe
+    - "gem_global"      # 20 members — Canadian
+    - "bom_access_global_ensemble"  # 17 members — Australian BOM
+  model_weights:
+    ecmwf_ifs025: 0.40
+    gfs025: 0.25
+    icon_seamless: 0.20
+    gem_global: 0.10
+    bom_access_global_ensemble: 0.05
+  request_timeout: 30
+  min_ensemble_members: 50   # reject if total members below this
+
+risk:
+  max_trade_exposure: 0.02   # max 2% capital per trade
+  max_daily_exposure: 0.10   # max 10% capital per day
+  max_concurrent_positions: 5
+  kelly_fraction: 0.25       # conservative fractional Kelly
+  starting_capital: 10000.0
+  min_kelly_bet: 10.0
+  max_single_bet: 200.0      # hard cap per trade
+
+thresholds:
+  # Edge: model probability must exceed market by this much
+  min_edge_exact: 0.20       # "exactly X°C" — harder, needs bigger edge
+  min_edge_directional: 0.15 # "above/below" — slightly easier
+  min_edge: 0.15             # fallback
+
+  # Confidence score 0-100
+  min_confidence: 72
+
+  # Ensemble spread (p90-p10) — how much do the 156 members disagree?
+  max_ensemble_spread_temp: 4.0   # °C — above this means uncertain
+  max_ensemble_spread_precip: 8.0 # mm
+
+  # Threshold distance — how far is forecast from the bracket edge?
+  min_threshold_distance: 1.5     # °C — forecast must be >1.5°C inside bracket
+
+  # Market quality
+  min_liquidity: 300         # minimum $ in the market
+  max_spread_pct: 0.06       # max bid-ask spread
+
+  # Multi-model agreement — at least this many model families must agree direction
+  min_models_agreeing: 3     # out of 5 models
+
+  # Stability
+  min_provider_agreement: 0.65
+  min_stability_score: 0.55
+
+  # Time
+  min_hours_to_resolution: 6   # don't enter if resolving in < 6 hours
+
+execution:
+  human_approval_mode: true
+  paper_trading: true
+  simulated_slippage: 0.002
+  simulated_fee: 0.002
+
+logging:
+  level: "INFO"
+  data_dir: "data/"
+  log_file: "data/bot.log"
+  events_file: "data/events.jsonl"
+  rotation: "10 MB"
+  retention: "30 days"
