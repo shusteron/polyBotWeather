@@ -16,14 +16,11 @@ env/
 .venv/
 .env
 
-# Data files (don't commit trade history or logs)
-data/*.json
+# Logs only — keep JSON data files so GitHub Actions persists state
 data/*.log
 data/cron.log
-data/events.jsonl
 
-# Excel exports
-exports/
+# Keep exports folder tracked so Actions can push Excel reports
 
 # IDE
 .idea/

@@ -1,0 +1,70 @@
+name: Weather Bot — Auto Scan
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 07:00 UTC daily (scan)
+    - cron: '0 19 * * *'  # 19:00 UTC daily (scan)
+    - cron: '15 7 * * *'  # 07:15 UTC daily (resolve expired markets)
+  workflow_dispatch:        # allow manual trigger from GitHub UI
+
+jobs:
+  scan:
+    if: github.event.schedule == '0 7 * * *' || github.event.schedule == '0 19 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scan
+        run: python main.py --mode scan
+
+      - name: Export Excel report
+        run: python main.py --mode report
+
+      - name: Commit results
+        run: |
+          git config user.name "WeatherBot"
+          git config user.email "bot@weatherbot.local"
+          git add data/ exports/
+          git diff --cached --quiet || git commit -m "auto: scan $(date '+%Y-%m-%d %H:%M UTC')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  resolve:
+    if: github.event.schedule == '15 7 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Resolve expired markets
+        run: python main.py --mode resolve
+
+      - name: Commit calibration data
+        run: |
+          git config user.name "WeatherBot"
+          git config user.email "bot@weatherbot.local"
+          git add data/
+          git diff --cached --quiet || git commit -m "auto: resolve $(date '+%Y-%m-%d %H:%M UTC')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
