@@ -11,6 +11,8 @@ jobs:
   scan:
     if: github.event.schedule == '0 7 * * *' || github.event.schedule == '0 19 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -43,6 +45,8 @@ jobs:
   resolve:
     if: github.event.schedule == '15 7 * * *'
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
