@@ -36,9 +36,10 @@ risk:
 
 thresholds:
   # Edge: model probability must exceed market by this much
-  min_edge_exact: 0.20       # "exactly X°C" — harder, needs bigger edge
-  min_edge_directional: 0.15 # "above/below" — slightly easier
-  min_edge: 0.15             # fallback
+  # (paper trading phase — lower to collect more calibration data)
+  min_edge_exact: 0.15       # "exactly X°C" — harder, needs bigger edge
+  min_edge_directional: 0.12 # "above/below" — slightly easier
+  min_edge: 0.12             # fallback
 
   # Confidence score 0-100
   min_confidence: 72
@@ -50,8 +51,8 @@ thresholds:
   # Threshold distance — how far is forecast from the bracket edge?
   min_threshold_distance: 1.5     # °C — forecast must be >1.5°C inside bracket
 
-  # Market quality
-  min_liquidity: 300         # minimum $ in the market
+  # Market quality (paper trading phase — lower for calibration data collection)
+  min_liquidity: 50          # minimum $ in the market
   max_spread_pct: 0.06       # max bid-ask spread
 
   # Multi-model agreement — at least this many model families must agree direction

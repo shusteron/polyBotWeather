@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+import time
+from datetime import date
 from typing import Optional
 
 import numpy as np
@@ -55,6 +56,7 @@ class OpenMeteoClient:
             )
             if forecast:
                 results.append(forecast)
+            time.sleep(0.5)  # respect Open-Meteo rate limits
         return results
 
     def _fetch_model_ensemble(

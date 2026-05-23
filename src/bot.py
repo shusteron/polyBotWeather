@@ -250,10 +250,7 @@ class EliteWeatherBot:
                 station_temp = recent.get("temp")
                 if station_temp is not None:
                     station_check = float(station_temp)
-                    logger.debug(
-                        f"Station {icao} current temp: {station_check:.1f}°C "
-                        f"(model ensemble mean: {forecasts[0].mean:.1f}°C if available)"
-                    )
+                    logger.debug(f"Station {icao} current temp: {station_check:.1f}°C")
         if not forecasts:
             logger.debug(f"Skipping {market.id} — no forecast data available")
             return
