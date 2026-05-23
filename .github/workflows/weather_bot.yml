@@ -38,6 +38,7 @@ jobs:
           git config user.email "bot@weatherbot.local"
           git add data/ exports/
           git diff --cached --quiet || git commit -m "auto: scan $(date '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,6 +70,7 @@ jobs:
           git config user.email "bot@weatherbot.local"
           git add data/
           git diff --cached --quiet || git commit -m "auto: resolve $(date '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
