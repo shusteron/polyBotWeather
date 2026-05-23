@@ -167,6 +167,8 @@ class EliteWeatherBot:
 
         # Track skipped trades for reporting
         self._skipped_trades: list[dict] = []
+        # Forecast cache: (location, date, measurement) → forecasts list
+        self._forecast_cache: dict = {}
 
         logger.info("EliteWeatherBot initialized successfully")
 
@@ -181,7 +183,7 @@ class EliteWeatherBot:
         logger.info("=== Starting scan cycle ===")
 
         # 1. Scan markets
-        markets = self.scanner.scan_weather_markets(limit=100)
+        markets = self.scanner.scan_weather_markets(limit=500)
         self.trade_logger.log_scan_start(len(markets))
 
         if not markets:
@@ -189,6 +191,10 @@ class EliteWeatherBot:
             return
 
         open_trades = self.paper_trader.get_open_trades()
+
+        # Cache forecasts by (location, date, measurement) — avoid duplicate API calls
+        # London May 24 appears ~12 times; fetch once, reuse for all brackets
+        self._forecast_cache: dict = {}
 
         for market in markets:
             try:
@@ -232,12 +238,17 @@ class EliteWeatherBot:
         else:
             measurement = "max"
 
-        # 5. Fetch ensemble forecasts from all 5 free models
-        forecasts = self.open_meteo.get_ensemble_forecast(
-            lat, lon, target_date,
-            location=market.location or market.id,
-            measurement=measurement,
-        )
+        # 5. Fetch ensemble forecasts — use cache to avoid duplicate API calls
+        cache_key = (market.location, target_date, measurement)
+        if cache_key in self._forecast_cache:
+            forecasts = self._forecast_cache[cache_key]
+        else:
+            forecasts = self.open_meteo.get_ensemble_forecast(
+                lat, lon, target_date,
+                location=market.location or market.id,
+                measurement=measurement,
+            )
+            self._forecast_cache[cache_key] = forecasts
 
         # 5b. METAR station cross-check — validates model direction against real observations
         icao = get_icao(market.location)
