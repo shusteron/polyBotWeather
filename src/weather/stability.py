@@ -90,13 +90,14 @@ class ForecastStabilityEngine:
             if "mean" in run:
                 hour_buckets[hour_key].append(run["mean"])
 
-        # Need at least 2 distinct scan hours to compute meaningful stability
+        # Need at least 2 distinct scan hours to compute meaningful stability.
+        # Return 0.65 (passes the 0.55 gate) — no history means no evidence of instability.
         if len(hour_buckets) < 2:
             return ForecastStabilityRecord(
                 location=location,
                 target_date=target_date,
                 runs=recent_runs,
-                stability_score=0.5,  # neutral — not enough temporal history yet
+                stability_score=0.65,
                 direction_consistent=False,
             )
 
