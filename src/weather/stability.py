@@ -80,7 +80,28 @@ class ForecastStabilityEngine:
                 direction_consistent=False,
             )
 
-        means = [r["mean"] for r in recent_runs if "mean" in r]
+        # Group runs by scan-hour so cross-model variance within one run
+        # doesn't masquerade as instability. Use one mean per hour bucket.
+        from collections import defaultdict
+        hour_buckets: dict[str, list[float]] = defaultdict(list)
+        for run in recent_runs:
+            ts_str = run.get("timestamp", "")
+            hour_key = ts_str[:13]  # "2026-05-24T15" — one bucket per hour
+            if "mean" in run:
+                hour_buckets[hour_key].append(run["mean"])
+
+        # Need at least 2 distinct scan hours to compute meaningful stability
+        if len(hour_buckets) < 2:
+            return ForecastStabilityRecord(
+                location=location,
+                target_date=target_date,
+                runs=recent_runs,
+                stability_score=0.5,  # neutral — not enough temporal history yet
+                direction_consistent=False,
+            )
+
+        # One representative mean per hour (ensemble average within each scan)
+        means = [float(np.mean(v)) for v in hour_buckets.values()]
 
         if not means:
             return ForecastStabilityRecord(
@@ -91,7 +112,7 @@ class ForecastStabilityEngine:
                 direction_consistent=False,
             )
 
-        # Stability = 1 - normalized std of means
+        # Stability = 1 - normalized std of hourly means
         mean_of_means = float(np.mean(means))
         std_of_means = float(np.std(means))
 
