@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "market_id": "2336688",
+    "predicted_probability": 0.14388489208633093,
+    "market_probability": 0.003,
+    "edge": 0.14088489208633093,
+    "confidence": 75.74,
+    "outcome": null,
+    "resolution_date": "2026-05-25T12:00:00Z",
+    "pnl": null
+  },
+  {
+    "market_id": "2336764",
+    "predicted_probability": 0.8561151079136691,
+    "market_probability": 0.997,
+    "edge": -0.14088489208633093,
+    "confidence": 75.04,
+    "outcome": null,
+    "resolution_date": "2026-05-25T12:00:00Z",
+    "pnl": null
+  },
+  {
+    "market_id": "2337143",
+    "predicted_probability": 0.38848920863309355,
+    "market_probability": 0.016,
+    "edge": 0.37248920863309354,
+    "confidence": 77.04,
+    "outcome": null,
+    "resolution_date": "2026-05-25T12:00:00Z",
+    "pnl": null
+  },
+  {
+    "market_id": "2344012",
+    "predicted_probability": 0.14388489208633093,
+    "market_probability": 0.0025,
+    "edge": 0.14138489208633093,
+    "confidence": 77.34,
+    "outcome": null,
+    "resolution_date": "2026-05-26T12:00:00Z",
+    "pnl": null
+  },
+  {
+    "market_id": "2344088",
+    "predicted_probability": 0.8561151079136691,
+    "market_probability": 0.999,
+    "edge": -0.14288489208633093,
+    "confidence": 74.8,
+    "outcome": null,
+    "resolution_date": "2026-05-26T12:00:00Z",
+    "pnl": null
+  }
+]

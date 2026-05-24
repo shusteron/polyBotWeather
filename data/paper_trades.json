@@ -1,0 +1,305 @@
+{
+  "capital": 9075.9356,
+  "trades": [
+    {
+      "signal": {
+        "market_id": "2336688",
+        "action": "BUY_YES",
+        "model_probability": 0.14388489208633093,
+        "market_probability": 0.003,
+        "edge": 0.14088489208633093,
+        "confidence_score": {
+          "total": 75.74,
+          "ensemble_spread_score": 86.54,
+          "stability_score": 89.45,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 12.13,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 86.54,
+            "stability": 89.45,
+            "calibration": 50.0,
+            "threshold_distance": 100.0,
+            "liquidity": 12.13,
+            "horizon": 100.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.2,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2336688",
+        "title": "Will the highest temperature in Toronto be 16\u00b0C or below on May 25?",
+        "location": "Toronto",
+        "event_type": "temperature",
+        "threshold": 16.0,
+        "threshold_unit": "celsius",
+        "threshold_direction": "below",
+        "resolution_date": "2026-05-25T12:00:00Z",
+        "yes_price": 0.003,
+        "no_price": 0.997,
+        "spread": 0.0,
+        "liquidity": 6062.70107,
+        "volume": 1439.8818569999996,
+        "resolution_source": "https://www.wunderground.com/history/daily/ca/mississauga/CYYZ",
+        "resolution_station": "CYYZ"
+      },
+      "timestamp": "2026-05-24T20:14:22.356082",
+      "paper_fill_price": 0.005,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2336764",
+        "action": "BUY_NO",
+        "model_probability": 0.8561151079136691,
+        "market_probability": 0.997,
+        "edge": -0.14088489208633093,
+        "confidence_score": {
+          "total": 75.04,
+          "ensemble_spread_score": 86.29,
+          "stability_score": 88.89,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 6.92,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 86.29,
+            "stability": 88.89,
+            "calibration": 50.0,
+            "threshold_distance": 100.0,
+            "liquidity": 6.92,
+            "horizon": 100.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.2,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 195.99,
+        "recommended_size": 195.99
+      },
+      "market": {
+        "id": "2336764",
+        "title": "Will the highest temperature in Chicago be 72\u00b0F or higher on May 25?",
+        "location": "Chicago",
+        "event_type": "temperature",
+        "threshold": 72.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-25T12:00:00Z",
+        "yes_price": 0.997,
+        "no_price": 0.003,
+        "spread": 0.0,
+        "liquidity": 3460.93822,
+        "volume": 7166.949199000001,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/il/chicago/KORD",
+        "resolution_station": "KORD"
+      },
+      "timestamp": "2026-05-24T20:15:43.299202",
+      "paper_fill_price": 0.005,
+      "paper_size": 195.99,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2337143",
+        "action": "BUY_YES",
+        "model_probability": 0.38848920863309355,
+        "market_probability": 0.016,
+        "edge": 0.37248920863309354,
+        "confidence_score": {
+          "total": 77.04,
+          "ensemble_spread_score": 89.12,
+          "stability_score": 96.22,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 5.11,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 89.12,
+            "stability": 96.22,
+            "calibration": 50.0,
+            "threshold_distance": 100.0,
+            "liquidity": 5.11,
+            "horizon": 100.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.2,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 192.06,
+        "recommended_size": 192.06
+      },
+      "market": {
+        "id": "2337143",
+        "title": "Will the highest temperature in Los Angeles be 72\u00b0F or higher on May 25?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 72.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-25T12:00:00Z",
+        "yes_price": 0.016,
+        "no_price": 0.984,
+        "spread": 0.0,
+        "liquidity": 2556.84829,
+        "volume": 1065.048347,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-05-24T20:20:15.757850",
+      "paper_fill_price": 0.018,
+      "paper_size": 192.06,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2344012",
+        "action": "BUY_YES",
+        "model_probability": 0.14388489208633093,
+        "market_probability": 0.0025,
+        "edge": 0.14138489208633093,
+        "confidence_score": {
+          "total": 77.34,
+          "ensemble_spread_score": 86.77,
+          "stability_score": 95.12,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 16.25,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 86.77,
+            "stability": 95.12,
+            "calibration": 50.0,
+            "threshold_distance": 100.0,
+            "liquidity": 16.25,
+            "horizon": 100.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.2,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 188.22,
+        "recommended_size": 188.22
+      },
+      "market": {
+        "id": "2344012",
+        "title": "Will the highest temperature in Toronto be 20\u00b0C or below on May 26?",
+        "location": "Toronto",
+        "event_type": "temperature",
+        "threshold": 20.0,
+        "threshold_unit": "celsius",
+        "threshold_direction": "below",
+        "resolution_date": "2026-05-26T12:00:00Z",
+        "yes_price": 0.0025,
+        "no_price": 0.9975,
+        "spread": 0.0,
+        "liquidity": 8125.99117,
+        "volume": 1552.9305,
+        "resolution_source": "https://www.wunderground.com/history/daily/ca/mississauga/CYYZ",
+        "resolution_station": "CYYZ"
+      },
+      "timestamp": "2026-05-24T20:26:24.212548",
+      "paper_fill_price": 0.0045,
+      "paper_size": 188.22,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2344088",
+        "action": "BUY_NO",
+        "model_probability": 0.8561151079136691,
+        "market_probability": 0.999,
+        "edge": -0.14288489208633093,
+        "confidence_score": {
+          "total": 74.8,
+          "ensemble_spread_score": 79.97,
+          "stability_score": 93.34,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 11.45,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 79.97,
+            "stability": 93.34,
+            "calibration": 50.0,
+            "threshold_distance": 100.0,
+            "liquidity": 11.45,
+            "horizon": 100.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.2,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 184.44,
+        "recommended_size": 145.95
+      },
+      "market": {
+        "id": "2344088",
+        "title": "Will the highest temperature in Chicago be 66\u00b0F or higher on May 26?",
+        "location": "Chicago",
+        "event_type": "temperature",
+        "threshold": 66.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-26T12:00:00Z",
+        "yes_price": 0.999,
+        "no_price": 0.001,
+        "spread": 0.0,
+        "liquidity": 5724.04991,
+        "volume": 2874.7370000000005,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/il/chicago/KORD",
+        "resolution_station": "KORD"
+      },
+      "timestamp": "2026-05-24T20:27:49.936802",
+      "paper_fill_price": 0.003,
+      "paper_size": 145.95,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    }
+  ]
+}
