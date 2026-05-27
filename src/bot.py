@@ -558,10 +558,11 @@ class EliteWeatherBot:
                 )
 
     def export_report(self, output_dir: str = "exports/") -> str:
-        """Generate a full Excel report and return the file path."""
+        """Generate a full Excel report and return the file path.
+        Always writes to a single fixed file — no timestamp spam.
+        """
         os.makedirs(output_dir, exist_ok=True)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(output_dir, f"weather_bot_report_{timestamp}.xlsx")
+        output_path = os.path.join(output_dir, "weather_bot_report.xlsx")
 
         all_trades = self.paper_trader.get_all_trades()
         calibration_records = self.calibration_engine._records

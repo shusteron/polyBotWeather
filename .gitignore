@@ -20,7 +20,8 @@ env/
 data/*.log
 data/cron.log
 
-# Keep exports folder tracked so Actions can push Excel reports
+# Only the single fixed report file is tracked — no timestamped spam
+exports/weather_bot_report_2*.xlsx
 
 # IDE
 .idea/
