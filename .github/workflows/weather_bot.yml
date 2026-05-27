@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 7 * * *'   # 07:00 UTC daily (scan)
     - cron: '0 19 * * *'  # 19:00 UTC daily (scan)
-    - cron: '15 7 * * *'  # 07:15 UTC daily (resolve expired markets)
+    - cron: '0 9 * * *'   # 09:00 UTC daily (resolve expired markets — after scan finishes)
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
 jobs:
@@ -36,15 +36,15 @@ jobs:
         run: |
           git config user.name "WeatherBot"
           git config user.email "bot@weatherbot.local"
+          git pull --rebase origin main
           git add data/ exports/
           git diff --cached --quiet || git commit -m "auto: scan $(date '+%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   resolve:
-    if: github.event.schedule == '15 7 * * *'
+    if: github.event.schedule == '0 9 * * *'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -68,9 +68,9 @@ jobs:
         run: |
           git config user.name "WeatherBot"
           git config user.email "bot@weatherbot.local"
+          git pull --rebase origin main
           git add data/
           git diff --cached --quiet || git commit -m "auto: resolve $(date '+%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,32 +15,53 @@ from ..models import (
 
 class TradeFilter:
     """
-    Implements disciplined NO_TRADE bias.
-    Every check must pass for a trade to be approved.
-    Any single rejection check causes the trade to be skipped.
+    Disciplined NO_TRADE bias — every check must pass.
+
+    Key improvements over v1:
+      • Minimum entry price — rejects sub-cent lottery tickets
+      • Dynamic edge requirement — when model and market lean the SAME direction
+        (e.g. both say YES is likely, but disagree on how likely) a much larger
+        gap is required, because weather models are not precise enough to
+        reliably distinguish 86% from 99.7%.  When the model is genuinely
+        contrarian to the market the bar is lower.
+      • Zone reliability gate — once enough calibration history exists, skip
+        probability zones where the model has proven inaccurate.
     """
 
     def __init__(
         self,
+        # Market quality
         min_liquidity: float = 1_000.0,
         max_spread_pct: float = 0.05,
         min_hours_to_resolution: float = 24.0,
+        # Forecast quality
         max_ensemble_spread: float = 0.15,
         min_stability_score: float = 0.5,
         min_threshold_distance: float = 2.0,
         min_provider_agreement: float = 0.6,
-        min_confidence: float = 70.0,
-        min_edge: float = 0.08,
+        # Overall confidence
+        min_confidence: float = 72.0,
+        # --- New in v2 ---
+        # Price floor — never buy a side priced below this
+        min_market_price: float = 0.005,
+        # Edge requirements split by direction alignment
+        min_edge_same_direction: float = 0.30,  # both model+market lean same way
+        min_edge_contrarian: float = 0.15,       # model and market disagree on direction
+        # Zone reliability (0-100).  Only enforced once enough samples exist.
+        min_zone_reliability: float = 40.0,
     ):
-        self.min_liquidity = min_liquidity
-        self.max_spread_pct = max_spread_pct
-        self.min_hours_to_resolution = min_hours_to_resolution
-        self.max_ensemble_spread = max_ensemble_spread
-        self.min_stability_score = min_stability_score
-        self.min_threshold_distance = min_threshold_distance
-        self.min_provider_agreement = min_provider_agreement
-        self.min_confidence = min_confidence
-        self.min_edge = min_edge
+        self.min_liquidity            = min_liquidity
+        self.max_spread_pct           = max_spread_pct
+        self.min_hours_to_resolution  = min_hours_to_resolution
+        self.max_ensemble_spread      = max_ensemble_spread
+        self.min_stability_score      = min_stability_score
+        self.min_threshold_distance   = min_threshold_distance
+        self.min_provider_agreement   = min_provider_agreement
+        self.min_confidence           = min_confidence
+        self.min_market_price         = min_market_price
+        self.min_edge_same_direction  = min_edge_same_direction
+        self.min_edge_contrarian      = min_edge_contrarian
+        self.min_zone_reliability     = min_zone_reliability
 
     def evaluate(
         self,
@@ -49,53 +70,48 @@ class TradeFilter:
         stability: ForecastStabilityRecord,
         confidence: ConfidenceScore,
         edge: float,
+        model_prob: float = 0.5,
+        zone_reliability: float = 50.0,
+        zone_sample_count: int = 0,
+        min_zone_samples: int = 20,
     ) -> tuple[bool, list[str]]:
         """
         Run all rejection checks.
         Returns (should_trade, rejection_reasons).
-        Default verdict is NO_TRADE — every check must pass.
         """
         rejection_reasons: list[str] = []
 
-        # 1. Liquidity check
+        # 1. Liquidity
         if market.liquidity < self.min_liquidity:
             rejection_reasons.append(
                 f"Insufficient liquidity: ${market.liquidity:.0f} < ${self.min_liquidity:.0f}"
             )
 
-        # 2. Spread check
-        spread_pct = self._calculate_spread_pct(market)
+        # 2. Spread
+        spread_pct = self._spread_pct(market)
         if spread_pct > self.max_spread_pct:
             rejection_reasons.append(
                 f"Spread too wide: {spread_pct:.2%} > {self.max_spread_pct:.2%}"
             )
 
         # 3. Time to resolution
-        hours_remaining = self._hours_to_resolution(market)
-        if hours_remaining is not None and hours_remaining < self.min_hours_to_resolution:
+        hours = self._hours_to_resolution(market)
+        if hours is not None and hours < self.min_hours_to_resolution:
             rejection_reasons.append(
-                f"Too close to resolution: {hours_remaining:.1f}h < {self.min_hours_to_resolution:.0f}h"
+                f"Too close to resolution: {hours:.1f}h < {self.min_hours_to_resolution:.0f}h"
             )
 
-        # 4. Ensemble spread (weighted_std in °C)
-        if ensemble.weighted_std > self.max_ensemble_spread * 10:
-            # max_ensemble_spread in config is 0.15 but we compare to std in °C
-            # Treating max_ensemble_spread as a fraction: 0.15 → 1.5°C effective cap
-            # We use a generous scale: reject if std > 5°C (very uncertain)
-            pass  # handled by confidence score already; kept for direct check
-
-        # Ensemble spread as temperature std (direct check)
-        # Config value 0.15 is interpreted as: max 15% of a 10-unit range = 1.5 units
-        ensemble_spread_limit_c = self.max_ensemble_spread * 10.0  # e.g. 1.5°C
-        if ensemble.weighted_std > ensemble_spread_limit_c:
+        # 4. Ensemble spread
+        spread_limit_c = self.max_ensemble_spread * 10.0
+        if ensemble.weighted_std > spread_limit_c:
             rejection_reasons.append(
-                f"Ensemble spread too large: std={ensemble.weighted_std:.2f} > {ensemble_spread_limit_c:.2f}"
+                f"Ensemble spread too large: std={ensemble.weighted_std:.2f}°C > {spread_limit_c:.2f}°C"
             )
 
-        # 5. Stability score
+        # 5. Forecast stability
         if stability.stability_score < self.min_stability_score:
             rejection_reasons.append(
-                f"Forecast unstable: score={stability.stability_score:.2f} < {self.min_stability_score:.2f}"
+                f"Forecast unstable: {stability.stability_score:.2f} < {self.min_stability_score:.2f}"
             )
 
         # 6. Threshold distance
@@ -103,7 +119,7 @@ class TradeFilter:
             distance = abs(ensemble.weighted_mean - market.threshold)
             if distance < self.min_threshold_distance:
                 rejection_reasons.append(
-                    f"Too close to threshold: {distance:.2f} < {self.min_threshold_distance:.2f}"
+                    f"Too close to threshold: {distance:.2f}°C < {self.min_threshold_distance:.2f}°C"
                 )
 
         # 7. Provider agreement
@@ -118,27 +134,66 @@ class TradeFilter:
                 f"Confidence too low: {confidence.total:.1f} < {self.min_confidence:.1f}"
             )
 
-        # 9. Edge
-        if abs(edge) < self.min_edge:
+        # 9. Minimum entry price (NO LOTTERY TICKETS)
+        #    The side we are buying must be priced above min_market_price.
+        entry_price = market.yes_price if edge > 0 else market.no_price
+        if entry_price < self.min_market_price:
             rejection_reasons.append(
-                f"Insufficient edge: |{edge:.4f}| < {self.min_edge:.4f}"
+                f"Entry price too low: {entry_price:.4f} < {self.min_market_price:.4f} "
+                f"(sub-cent bets have too much variance)"
             )
 
-        # Default: reject if any reason found
+        # 10. Dynamic edge — requirement depends on whether model and market
+        #     lean the SAME direction or OPPOSITE directions.
+        #
+        #     Same direction example: model=86% YES, market=99.7% YES
+        #     → both say YES is likely; the model is just less confident.
+        #     Weather models are NOT precise enough at the 85-99% range to
+        #     reliably distinguish these.  Require a large gap (default 30%).
+        #
+        #     Contrarian example: model=39% YES, market=1.6% YES
+        #     → market says nearly impossible; model says real chance.
+        #     This is a strong structural disagreement. Lower bar (default 15%).
+        model_leans_yes  = model_prob > 0.5
+        market_leans_yes = market.yes_price > 0.5
+        same_direction   = (model_leans_yes == market_leans_yes)
+
+        required_edge = (
+            self.min_edge_same_direction if same_direction
+            else self.min_edge_contrarian
+        )
+        direction_label = "same-direction" if same_direction else "contrarian"
+
+        if abs(edge) < required_edge:
+            rejection_reasons.append(
+                f"Insufficient {direction_label} edge: "
+                f"|{edge:.4f}| < {required_edge:.4f}"
+            )
+
+        # 11. Zone reliability — once we have enough history, skip zones
+        #     where the model has consistently been wrong.
+        if zone_sample_count >= min_zone_samples:
+            if zone_reliability < self.min_zone_reliability:
+                rejection_reasons.append(
+                    f"Model unreliable in this probability zone: "
+                    f"{zone_reliability:.1f} < {self.min_zone_reliability:.1f} "
+                    f"(n={zone_sample_count})"
+                )
+
         should_trade = len(rejection_reasons) == 0
         return should_trade, rejection_reasons
 
-    def _calculate_spread_pct(self, market: MarketData) -> float:
-        """Compute spread as a percentage of mid-price."""
+    # ------------------------------------------------------------------ #
+    #  Helpers                                                             #
+    # ------------------------------------------------------------------ #
+
+    def _spread_pct(self, market: MarketData) -> float:
         if market.yes_price <= 0 or market.no_price <= 0:
             return 1.0
         mid = (market.yes_price + market.no_price) / 2.0
-        if mid <= 0:
-            return 1.0
-        return market.spread / mid
+        return market.spread / mid if mid > 0 else 1.0
 
     def _hours_to_resolution(self, market: MarketData) -> Optional[float]:
-        """Return hours until market resolution, or None if unknown."""
         if not market.resolution_date:
             return None
         try:
@@ -154,13 +209,16 @@ class TradeFilter:
     def from_config(cls, cfg: dict) -> "TradeFilter":
         t = cfg.get("thresholds", {})
         return cls(
-            min_liquidity=t.get("min_liquidity", 1_000.0),
-            max_spread_pct=t.get("max_spread_pct", 0.05),
-            min_hours_to_resolution=t.get("min_hours_to_resolution", 24.0),
-            max_ensemble_spread=t.get("max_ensemble_spread", 0.15),
-            min_stability_score=t.get("min_stability_score", 0.5),
-            min_threshold_distance=t.get("min_threshold_distance", 2.0),
-            min_provider_agreement=t.get("min_provider_agreement", 0.6),
-            min_confidence=t.get("min_confidence", 70.0),
-            min_edge=t.get("min_edge", 0.08),
+            min_liquidity           = t.get("min_liquidity",            1_000.0),
+            max_spread_pct          = t.get("max_spread_pct",           0.05),
+            min_hours_to_resolution = t.get("min_hours_to_resolution",  24.0),
+            max_ensemble_spread     = t.get("max_ensemble_spread",      0.15),
+            min_stability_score     = t.get("min_stability_score",      0.5),
+            min_threshold_distance  = t.get("min_threshold_distance",   2.0),
+            min_provider_agreement  = t.get("min_provider_agreement",   0.6),
+            min_confidence          = t.get("min_confidence",           72.0),
+            min_market_price        = t.get("min_market_price",         0.005),
+            min_edge_same_direction = t.get("min_edge_same_direction",  0.30),
+            min_edge_contrarian     = t.get("min_edge_contrarian",      0.15),
+            min_zone_reliability    = t.get("min_zone_reliability",     40.0),
         )

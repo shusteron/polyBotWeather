@@ -319,24 +319,36 @@ class EliteWeatherBot:
         # 10. Calibration score
         calibration_score = self.calibration_engine.get_calibration_score()
 
-        # 11. Confidence scoring
+        # 11. Zone + city reliability (from calibration history)
+        zone_reliability  = self.calibration_engine.get_zone_reliability(model_prob)
+        zone_sample_count = self.calibration_engine.get_zone_sample_count(model_prob)
+        city_reliability  = self.calibration_engine.get_city_reliability(market.location)
+
+        # 12. Confidence scoring
         confidence = self.confidence_scorer.score(
             market=market,
             ensemble=ensemble,
             stability=stability,
             calibration_score=calibration_score,
             edge=edge,
+            zone_reliability=zone_reliability,
+            city_reliability=city_reliability,
         )
 
         self.trade_logger.log_market_analysis(market, ensemble, confidence, edge)
 
-        # 12. Trade filter (NO_TRADE bias)
+        # 13. Trade filter (NO_TRADE bias)
+        min_zone_samples = self.cfg.get("thresholds", {}).get("min_zone_samples", 20)
         should_trade, rejection_reasons = self.trade_filter.evaluate(
             market=market,
             ensemble=ensemble,
             stability=stability,
             confidence=confidence,
             edge=edge,
+            model_prob=model_prob,
+            zone_reliability=zone_reliability,
+            zone_sample_count=zone_sample_count,
+            min_zone_samples=min_zone_samples,
         )
 
         if not should_trade:
@@ -353,7 +365,7 @@ class EliteWeatherBot:
             })
             return
 
-        # 13. Correlation check
+        # 14. Correlation check
         corr_score = self.correlation_detector.get_correlated_exposure(
             TradeSignal(
                 market_id=market.id,
@@ -381,7 +393,7 @@ class EliteWeatherBot:
             })
             return
 
-        # 14. Kelly sizing
+        # 15. Kelly sizing
         entry_price = market.yes_price if direction == "BUY_YES" else market.no_price
         kelly_size = self.risk_manager.calculate_kelly_size(
             model_prob, entry_price, capital=self.paper_trader.capital
@@ -399,7 +411,7 @@ class EliteWeatherBot:
             recommended_size=kelly_size,
         )
 
-        # 15. Final risk approval
+        # 16. Final risk approval
         approved_size = self.risk_manager.get_approved_size(
             signal, self.paper_trader.capital, open_trades
         )
@@ -410,13 +422,19 @@ class EliteWeatherBot:
 
         signal.recommended_size = approved_size
 
-        # 16. Execute paper trade
+        # 17. Execute paper trade
         trade = self.paper_trader.execute_trade(signal, market)
         if trade:
             open_trades.append(trade)
             self.trade_logger.log_trade_entered(trade)
 
-            # Record for calibration
+            # Determine direction type for calibration analysis
+            model_leans_yes  = model_prob > 0.5
+            market_leans_yes = market_prob > 0.5
+            direction_type   = "same" if (model_leans_yes == market_leans_yes) else "contrarian"
+
+            # Record for calibration — include location + direction_type for
+            # per-city and per-zone reliability scoring in future scans
             calib_record = CalibrationRecord(
                 market_id=market.id,
                 predicted_probability=model_prob,
@@ -424,6 +442,8 @@ class EliteWeatherBot:
                 edge=edge,
                 confidence=confidence.total,
                 resolution_date=market.resolution_date,
+                location=market.location,
+                direction_type=direction_type,
             )
             self.calibration_engine.record_trade(calib_record)
             self.trade_logger.log_calibration_update(calib_record)
@@ -431,8 +451,9 @@ class EliteWeatherBot:
     def resolve_expired_markets(self) -> None:
         """
         Check all open trades whose resolution_date has passed.
-        Attempts NOAA METAR lookup for stations with known IDs.
-        Marks others as needing manual resolution.
+        Uses the Open-Meteo archive API (primary) and NOAA METAR history (fallback)
+        to fetch the actual observed max/min temp for the resolution date and
+        determine the correct YES/NO outcome.
         """
         open_trades = self.paper_trader.get_open_trades()
         now = datetime.utcnow()
@@ -451,28 +472,89 @@ class EliteWeatherBot:
             if now < resolution_dt:
                 continue
 
+            target_date = self._get_target_date(market)
+            if not target_date:
+                continue
+
             logger.info(f"Market {market.id} is past resolution date — attempting auto-resolve")
 
-            # Try METAR for weather station resolution
-            resolved = False
-            if market.resolution_station:
-                metar = self.noaa.get_metar(market.resolution_station)
-                if metar:
-                    # Parse temperature from METAR
-                    temp_c = metar.get("temp", None)
-                    if temp_c is not None and market.threshold is not None:
-                        outcome = float(temp_c) > market.threshold
-                        resolved_trade = self.paper_trader.resolve_trade(market.id, outcome)
-                        if resolved_trade:
-                            self.trade_logger.log_trade_resolved(resolved_trade)
-                            self.calibration_engine.update_outcome(
-                                market.id, outcome, resolved_trade.pnl or 0.0
-                            )
-                            resolved = True
+            # Determine measurement type from title
+            title_lower = market.title.lower()
+            if "highest" in title_lower or "high temp" in title_lower or "maximum" in title_lower:
+                measurement = "max"
+            elif "lowest" in title_lower or "low temp" in title_lower or "minimum" in title_lower:
+                measurement = "min"
+            else:
+                measurement = "max"
 
-            if not resolved:
+            actual_c: Optional[float] = None
+
+            # Primary: Open-Meteo archive API (clean historical daily data)
+            coords = self._get_coords(market)
+            if coords:
+                lat, lon = coords
+                max_c, min_c = self.open_meteo.get_historical_daily(lat, lon, target_date)
+                actual_c = max_c if measurement == "max" else min_c
+                if actual_c is not None:
+                    logger.debug(
+                        f"Open-Meteo archive: {market.location} {target_date} "
+                        f"{measurement}={actual_c:.1f}°C"
+                    )
+
+            # Fallback: NOAA METAR daily max/min (longer lookback window)
+            if actual_c is None and market.resolution_station:
+                hours_back = max(48, int((now - resolution_dt.replace()).total_seconds() / 3600) + 26)
+                metar_obs = self.noaa.get_metar_history(
+                    market.resolution_station, hours=min(hours_back, 120)
+                )
+                temps = []
+                for obs in metar_obs:
+                    obs_time = obs.get("obsTime") or obs.get("reportTime") or ""
+                    if obs_time.startswith(target_date):
+                        t = obs.get("temp")
+                        if t is not None:
+                            try:
+                                temps.append(float(t))
+                            except (TypeError, ValueError):
+                                pass
+                if temps:
+                    actual_c = max(temps) if measurement == "max" else min(temps)
+                    logger.debug(
+                        f"METAR fallback: {market.resolution_station} {target_date} "
+                        f"{measurement}={actual_c:.1f}°C from {len(temps)} observations"
+                    )
+
+            if actual_c is None or market.threshold is None:
                 logger.info(
-                    f"Cannot auto-resolve {market.id} '{market.title[:50]}' — manual resolution required"
+                    f"Cannot auto-resolve {market.id} '{market.title[:50]}' — "
+                    f"no weather data available"
+                )
+                continue
+
+            # Convert market threshold to Celsius for comparison
+            threshold_c = market.threshold
+            if market.threshold_unit == "fahrenheit":
+                threshold_c = (market.threshold - 32) * 5 / 9
+
+            # Determine YES/NO outcome based on direction
+            direction = market.threshold_direction  # "above", "below", or "exact"
+            if direction == "above":
+                outcome = actual_c >= threshold_c
+            elif direction == "below":
+                outcome = actual_c <= threshold_c
+            else:
+                outcome = abs(actual_c - threshold_c) <= 0.5
+
+            logger.info(
+                f"Resolving {market.id}: actual={actual_c:.1f}°C, "
+                f"threshold={threshold_c:.1f}°C ({direction}) → outcome={'YES' if outcome else 'NO'}"
+            )
+
+            resolved_trade = self.paper_trader.resolve_trade(market.id, outcome)
+            if resolved_trade:
+                self.trade_logger.log_trade_resolved(resolved_trade)
+                self.calibration_engine.update_outcome(
+                    market.id, outcome, resolved_trade.pnl or 0.0
                 )
 
     def export_report(self, output_dir: str = "exports/") -> str:

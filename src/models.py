@@ -125,3 +125,5 @@ class CalibrationRecord(BaseModel):
     outcome: Optional[bool] = None
     resolution_date: Optional[str] = None
     pnl: Optional[float] = None
+    location: Optional[str] = None          # city name — for per-city reliability tracking
+    direction_type: Optional[str] = None    # "same" or "contrarian" — for zone analysis

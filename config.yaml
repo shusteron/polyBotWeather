@@ -35,35 +35,43 @@ risk:
   max_single_bet: 200.0      # hard cap per trade
 
 thresholds:
-  # Edge: model probability must exceed market by this much
-  # (paper trading phase — lower to collect more calibration data)
-  min_edge_exact: 0.15       # "exactly X°C" — harder, needs bigger edge
-  min_edge_directional: 0.12 # "above/below" — slightly easier
-  min_edge: 0.12             # fallback
-
-  # Confidence score 0-100
+  # ── Confidence ──────────────────────────────────────────────────────────
   min_confidence: 72
 
-  # Ensemble spread (p90-p10) — how much do the 156 members disagree?
-  max_ensemble_spread_temp: 4.0   # °C — above this means uncertain
-  max_ensemble_spread_precip: 8.0 # mm
-
-  # Threshold distance — how far is forecast from the bracket edge?
-  min_threshold_distance: 1.5     # °C — forecast must be >1.5°C inside bracket
-
-  # Market quality (paper trading phase — lower for calibration data collection)
-  min_liquidity: 50          # minimum $ in the market
-  max_spread_pct: 0.06       # max bid-ask spread
-
-  # Multi-model agreement — at least this many model families must agree direction
-  min_models_agreeing: 3     # out of 5 models
-
-  # Stability
+  # ── Forecast quality ────────────────────────────────────────────────────
+  max_ensemble_spread: 0.15      # weighted_std / 10 → reject if std > 1.5°C
+  min_threshold_distance: 1.5    # forecast must be >1.5°C away from threshold
   min_provider_agreement: 0.65
   min_stability_score: 0.55
 
-  # Time
-  min_hours_to_resolution: 6   # don't enter if resolving in < 6 hours
+  # ── Market quality ───────────────────────────────────────────────────────
+  min_liquidity: 50              # minimum $ in the market
+  max_spread_pct: 0.06           # max bid-ask spread
+  min_hours_to_resolution: 6     # don't enter if resolving in < 6 hours
+
+  # ── Price floor (no lottery tickets) ────────────────────────────────────
+  # The side we are buying must be priced above this.
+  # 0.005 = 0.5 cents.  Sub-cent bets have enormous variance and require
+  # the model to be right with very high precision — which it isn't.
+  min_market_price: 0.005
+
+  # ── Dynamic edge requirement ─────────────────────────────────────────────
+  # When the model and the market AGREE on direction (both lean YES, or
+  # both lean NO) but disagree on the exact probability, the gap must be
+  # very large.  Weather ensemble models are NOT precise enough at the
+  # tails to reliably distinguish 86% from 99.7%.
+  #
+  # When the model DISAGREES with the market direction (model says 39%,
+  # market says 1.6%) that is a strong structural signal — lower bar.
+  min_edge_same_direction: 0.30  # e.g. model=86%, market=99.7% → gap=13.7% < 30% → skip
+  min_edge_contrarian: 0.15      # e.g. model=39%, market=1.6%  → gap=37.4% > 15% → trade
+
+  # ── Zone reliability gate ────────────────────────────────────────────────
+  # Once ≥20 resolved records exist in a probability band (0-10%, 10-20%…)
+  # skip that band if the model's Brier-based score is below this.
+  # Has no effect until enough calibration data is collected.
+  min_zone_reliability: 40.0
+  min_zone_samples: 20
 
 execution:
   human_approval_mode: true

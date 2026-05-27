@@ -12,6 +12,7 @@ from ..models import WeatherForecast
 
 ENSEMBLE_URL = "https://ensemble-api.open-meteo.com/v1/ensemble"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive"
 
 ENSEMBLE_MODELS = {
     "ecmwf_ifs025": "ECMWF IFS 0.25° (50 members)",
@@ -176,6 +177,39 @@ class OpenMeteoClient:
                 except (TypeError, ValueError):
                     pass
         return result
+
+    def get_historical_daily(
+        self,
+        lat: float,
+        lon: float,
+        target_date: str,
+    ) -> tuple[Optional[float], Optional[float]]:
+        """
+        Fetch actual observed daily max/min temperature (°C) for a past date
+        from the Open-Meteo archive API.
+        Returns (max_c, min_c) or (None, None) on failure.
+        """
+        try:
+            params = {
+                "latitude": lat,
+                "longitude": lon,
+                "start_date": target_date,
+                "end_date": target_date,
+                "daily": "temperature_2m_max,temperature_2m_min",
+                "timezone": "UTC",
+            }
+            resp = self.session.get(ARCHIVE_URL, params=params, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            daily = data.get("daily", {})
+            max_list = daily.get("temperature_2m_max", [])
+            min_list = daily.get("temperature_2m_min", [])
+            max_c = float(max_list[0]) if max_list and max_list[0] is not None else None
+            min_c = float(min_list[0]) if min_list and min_list[0] is not None else None
+            return max_c, min_c
+        except Exception as exc:
+            logger.warning(f"Archive fetch failed for ({lat},{lon}) on {target_date}: {exc}")
+            return None, None
 
     def get_deterministic_forecast(
         self, lat: float, lon: float, target_date: str, location: str = "unknown"

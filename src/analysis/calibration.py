@@ -11,6 +11,10 @@ from ..models import CalibrationRecord
 
 CALIBRATION_FILE = os.path.join("data", "calibration.json")
 
+# Minimum resolved records needed before we trust a reliability score.
+# Below this we return a neutral 50.0 — "we don't know yet."
+MIN_SAMPLES_FOR_RELIABILITY = 20
+
 
 class CalibrationEngine:
     def __init__(self, data_dir: str = "data"):
@@ -19,13 +23,15 @@ class CalibrationEngine:
         self._records: list[dict] = []
         self._load_records()
 
+    # ------------------------------------------------------------------ #
+    #  Write                                                               #
+    # ------------------------------------------------------------------ #
+
     def record_trade(self, record: CalibrationRecord) -> None:
-        """Persist a new calibration record to the JSON store."""
         self._records.append(record.model_dump())
         self._save_records()
 
     def update_outcome(self, market_id: str, outcome: bool, pnl: float) -> None:
-        """Update the outcome and PnL for an existing calibration record."""
         for r in self._records:
             if r.get("market_id") == market_id and r.get("outcome") is None:
                 r["outcome"] = outcome
@@ -33,88 +39,141 @@ class CalibrationEngine:
                 break
         self._save_records()
 
-    def get_calibration_score(
-        self,
-        region: Optional[str] = None,
-        horizon_days: Optional[int] = None,
-        season: Optional[str] = None,
-    ) -> float:
-        """
-        Return a calibration score (0-100).
-        Filters by region, horizon, and/or season if provided.
-        Perfect calibration → 50% predicted = 50% actual hit rate.
-        """
+    # ------------------------------------------------------------------ #
+    #  Overall accuracy                                                    #
+    # ------------------------------------------------------------------ #
+
+    def get_calibration_score(self) -> float:
+        """Overall Brier-based score 0-100.  50 = neutral / no data."""
         records = self._get_resolved_records()
         if not records:
-            return 50.0  # neutral when no history
-
-        brier = self.get_brier_score(records)
-        # Brier score range: 0 (perfect) to 1 (worst). Convert to 0-100 score.
-        # A random predictor scores ~0.25. Score 100 = Brier 0, Score 0 = Brier 0.5+
-        score = float(max(0.0, 100.0 * (1.0 - brier / 0.25)))
-        return min(100.0, score)
+            return 50.0
+        brier = self._brier(records)
+        return float(max(0.0, min(100.0, 100.0 * (1.0 - brier / 0.25))))
 
     def get_brier_score(self, records: list[dict]) -> float:
-        """
-        Compute the Brier score for a list of resolved calibration records.
-        Brier = mean((predicted_prob - outcome)^2)
-        """
         resolved = [r for r in records if r.get("outcome") is not None]
         if not resolved:
-            return 0.25  # return naive score when no data
-
-        errors = []
-        for r in resolved:
-            p = float(r.get("predicted_probability", 0.5))
-            o = float(r["outcome"])
-            errors.append((p - o) ** 2)
+            return 0.25
+        errors = [(float(r.get("predicted_probability", 0.5)) - float(r["outcome"])) ** 2
+                  for r in resolved]
         return float(np.mean(errors))
 
-    def get_calibration_curve(self, records: list[dict]) -> list[dict]:
+    # ------------------------------------------------------------------ #
+    #  Zone reliability — how accurate is the model in a probability band #
+    # ------------------------------------------------------------------ #
+
+    def get_zone_reliability(self, model_prob: float) -> float:
+        """
+        Returns 0-100 score for how well the model is calibrated in the
+        probability band that contains model_prob.
+
+        Bands (width 0.10):  0-10%, 10-20%, …, 90-100%
+
+        If fewer than MIN_SAMPLES_FOR_RELIABILITY resolved records exist in
+        the band we return 50.0 (neutral — don't penalise or reward yet).
+        """
+        resolved = self._get_resolved_records()
+        band_low  = (int(model_prob * 10)) / 10.0        # e.g. 0.86 → 0.80
+        band_high = band_low + 0.10
+
+        in_band = [
+            r for r in resolved
+            if band_low <= float(r.get("predicted_probability", 0)) < band_high
+        ]
+
+        if len(in_band) < MIN_SAMPLES_FOR_RELIABILITY:
+            return 50.0  # not enough data — stay neutral
+
+        brier = self._brier(in_band)
+        return float(max(0.0, min(100.0, 100.0 * (1.0 - brier / 0.25))))
+
+    def get_zone_sample_count(self, model_prob: float) -> int:
+        """How many resolved trades exist in this model_prob zone."""
+        resolved = self._get_resolved_records()
+        band_low  = (int(model_prob * 10)) / 10.0
+        band_high = band_low + 0.10
+        return sum(
+            1 for r in resolved
+            if band_low <= float(r.get("predicted_probability", 0)) < band_high
+        )
+
+    # ------------------------------------------------------------------ #
+    #  City reliability — how accurate is the model for a specific city   #
+    # ------------------------------------------------------------------ #
+
+    def get_city_reliability(self, city: Optional[str]) -> float:
+        """
+        Returns 0-100 score for how accurate the model has been for this
+        specific city.  Neutral (50.0) until MIN_SAMPLES_FOR_RELIABILITY
+        resolved records exist for the city.
+        """
+        if not city:
+            return 50.0
+
+        resolved = self._get_resolved_records()
+        city_records = [
+            r for r in resolved
+            if str(r.get("location", "")).lower() == city.lower()
+        ]
+
+        if len(city_records) < MIN_SAMPLES_FOR_RELIABILITY:
+            return 50.0
+
+        brier = self._brier(city_records)
+        return float(max(0.0, min(100.0, 100.0 * (1.0 - brier / 0.25))))
+
+    def get_city_sample_count(self, city: Optional[str]) -> int:
+        """How many resolved trades exist for this city."""
+        if not city:
+            return 0
+        resolved = self._get_resolved_records()
+        return sum(
+            1 for r in resolved
+            if str(r.get("location", "")).lower() == city.lower()
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Calibration curve (for reporting)                                  #
+    # ------------------------------------------------------------------ #
+
+    def get_calibration_curve(self) -> list[dict]:
         """
         Bin predictions into deciles and compute actual hit rates per bin.
-        Returns a list of dicts: {bin_low, bin_high, predicted_mid, actual_rate, count}
+        Returns [{bin_low, bin_high, predicted_mid, actual_rate, count}]
         """
-        resolved = [r for r in records if r.get("outcome") is not None]
+        resolved = self._get_resolved_records()
         bins = []
-        bin_edges = list(range(0, 110, 10))
-
-        for i in range(len(bin_edges) - 1):
-            low = bin_edges[i] / 100.0
-            high = bin_edges[i + 1] / 100.0
+        for low_pct in range(0, 100, 10):
+            low  = low_pct / 100.0
+            high = (low_pct + 10) / 100.0
             bucket = [
                 r for r in resolved
                 if low <= float(r.get("predicted_probability", 0)) < high
             ]
             actual_rate = float(np.mean([r["outcome"] for r in bucket])) if bucket else 0.0
             bins.append({
-                "bin_low": low,
-                "bin_high": high,
+                "bin_low":       low,
+                "bin_high":      high,
                 "predicted_mid": (low + high) / 2.0,
-                "actual_rate": actual_rate,
-                "count": len(bucket),
+                "actual_rate":   actual_rate,
+                "count":         len(bucket),
             })
         return bins
 
-    def get_region_reliability(self, region: str) -> float:
-        """
-        Return a calibration score (0-100) for trades in a specific region.
-        Currently uses market title matching as a proxy for region.
-        """
-        region_records = [
-            r for r in self._records
-            if region.lower() in str(r.get("market_id", "")).lower()
-        ]
-        if not region_records:
-            return 50.0
-        resolved = [r for r in region_records if r.get("outcome") is not None]
-        if not resolved:
-            return 50.0
-        brier = self.get_brier_score(resolved)
-        return float(max(0.0, min(100.0, 100.0 * (1.0 - brier / 0.25))))
+    # ------------------------------------------------------------------ #
+    #  Internals                                                           #
+    # ------------------------------------------------------------------ #
 
     def _get_resolved_records(self) -> list[dict]:
         return [r for r in self._records if r.get("outcome") is not None]
+
+    def _brier(self, records: list[dict]) -> float:
+        errors = [
+            (float(r.get("predicted_probability", 0.5)) - float(r["outcome"])) ** 2
+            for r in records if r.get("outcome") is not None
+        ]
+        return float(np.mean(errors)) if errors else 0.25
 
     def _load_records(self) -> None:
         if os.path.exists(self.calibration_file):
@@ -129,8 +188,14 @@ class CalibrationEngine:
 
     def _save_records(self) -> None:
         os.makedirs(self.data_dir, exist_ok=True)
+        tmp = self.calibration_file + ".tmp"
         try:
-            with open(self.calibration_file, "w") as f:
+            with open(tmp, "w") as f:
                 json.dump(self._records, f, indent=2, default=str)
+            os.replace(tmp, self.calibration_file)
         except Exception as exc:
             logger.error(f"Failed to save calibration records: {exc}")
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
