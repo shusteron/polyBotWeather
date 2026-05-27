@@ -1,5 +1,5 @@
 {
-  "capital": 19745.9356,
+  "capital": 19545.5356,
   "trades": [
     {
       "signal": {
@@ -300,6 +300,70 @@
       "status": "CLOSED",
       "outcome": true,
       "pnl": -145.95
+    },
+    {
+      "signal": {
+        "market_id": "2367287",
+        "action": "BUY_YES",
+        "model_probability": 1.0,
+        "market_probability": 0.0065,
+        "edge": 0.9935,
+        "confidence_score": {
+          "total": 74.11,
+          "ensemble_spread_score": 87.21,
+          "stability_score": 96.46,
+          "calibration_score": 63.46,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 8.56,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 87.21,
+            "stability": 96.46,
+            "calibration": 63.46,
+            "threshold_distance": 100.0,
+            "liquidity": 8.56,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.2,
+              "stability": 0.15,
+              "calibration": 0.1,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05,
+              "zone_reliability": 0.15,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2367287",
+        "title": "Will the highest temperature in Seattle be 68\u00b0F or higher on May 29?",
+        "location": "Seattle",
+        "event_type": "temperature",
+        "threshold": 68.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-29T12:00:00Z",
+        "yes_price": 0.0065,
+        "no_price": 0.9935,
+        "spread": 0.0,
+        "liquidity": 4278.66731,
+        "volume": 919.121933,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/wa/seatac/KSEA",
+        "resolution_station": "KSEA"
+      },
+      "timestamp": "2026-05-27T21:33:07.925460",
+      "paper_fill_price": 0.0085,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
     }
   ]
 }

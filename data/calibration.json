@@ -48,5 +48,17 @@
     "outcome": true,
     "resolution_date": "2026-05-26T12:00:00Z",
     "pnl": -145.95
+  },
+  {
+    "market_id": "2367287",
+    "predicted_probability": 1.0,
+    "market_probability": 0.0065,
+    "edge": 0.9935,
+    "confidence": 74.11,
+    "outcome": null,
+    "resolution_date": "2026-05-29T12:00:00Z",
+    "pnl": null,
+    "location": "Seattle",
+    "direction_type": "contrarian"
   }
 ]
