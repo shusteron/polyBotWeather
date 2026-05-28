@@ -60,5 +60,17 @@
     "pnl": null,
     "location": "Seattle",
     "direction_type": "contrarian"
+  },
+  {
+    "market_id": "2376000",
+    "predicted_probability": 0.7122302158273381,
+    "market_probability": 0.235,
+    "edge": 0.47723021582733816,
+    "confidence": 73.47,
+    "outcome": null,
+    "resolution_date": "2026-05-30T12:00:00Z",
+    "pnl": null,
+    "location": "Los Angeles",
+    "direction_type": "contrarian"
   }
 ]

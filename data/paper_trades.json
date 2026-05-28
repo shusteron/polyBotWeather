@@ -1,5 +1,5 @@
 {
-  "capital": 19545.5356,
+  "capital": 19345.1356,
   "trades": [
     {
       "signal": {
@@ -360,6 +360,70 @@
       },
       "timestamp": "2026-05-27T21:33:07.925460",
       "paper_fill_price": 0.0085,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2376000",
+        "action": "BUY_YES",
+        "model_probability": 0.7122302158273381,
+        "market_probability": 0.235,
+        "edge": 0.47723021582733816,
+        "confidence_score": {
+          "total": 73.47,
+          "ensemble_spread_score": 86.53,
+          "stability_score": 98.47,
+          "calibration_score": 63.46,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 0.51,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 86.53,
+            "stability": 98.47,
+            "calibration": 63.46,
+            "threshold_distance": 100.0,
+            "liquidity": 0.51,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.2,
+              "stability": 0.15,
+              "calibration": 0.1,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05,
+              "zone_reliability": 0.15,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2376000",
+        "title": "Will the highest temperature in Los Angeles be 72\u00b0F or higher on May 30?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 72.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-30T12:00:00Z",
+        "yes_price": 0.235,
+        "no_price": 0.765,
+        "spread": 0.0,
+        "liquidity": 253.6417,
+        "volume": 175.576427,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-05-28T21:53:44.774631",
+      "paper_fill_price": 0.237,
       "paper_size": 200.0,
       "status": "OPEN",
       "outcome": null,
