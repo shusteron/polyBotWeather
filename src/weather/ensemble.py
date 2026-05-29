@@ -79,42 +79,76 @@ class EnsembleAnalyzer:
             all_members=all_members,
         )
 
+    @staticmethod
+    def _laplace_smooth(hits: int, n: int) -> float:
+        """
+        Laplace (add-one) smoothing — prevents returning exactly 0.0 or 1.0.
+
+        Formula: (hits + 1) / (n + 2)
+
+        Examples with 150 members:
+          All agree YES  → 151/152 = 0.993  (not 1.0)
+          None agree     →   1/152 = 0.0066 (not 0.0)
+          Half agree     →  76/152 = 0.500  (unchanged)
+        """
+        return (hits + 1) / (n + 2)
+
     def calculate_probability_above_threshold(
         self, analysis: EnsembleAnalysis, threshold: float
     ) -> float:
         """
-        Estimate P(value > threshold) as fraction of ensemble members above threshold.
-        Returns value in [0, 1].
+        Estimate P(value > threshold) using Laplace-smoothed ensemble fraction.
+        Never returns exactly 0.0 or 1.0 — acknowledges model uncertainty.
         """
         if not analysis.all_members:
             logger.warning("No ensemble members to calculate probability above threshold")
             return 0.5
         members = np.array(analysis.all_members)
-        prob = float(np.mean(members > threshold))
+        hits = int(np.sum(members > threshold))
+        n = len(members)
+        raw = hits / n
+        prob = self._laplace_smooth(hits, n)
+        if raw in (0.0, 1.0):
+            logger.warning(
+                f"All {n} ensemble members {'above' if raw == 1.0 else 'below'} "
+                f"threshold {threshold:.1f} — Laplace-smoothed to {prob:.4f}"
+            )
         return prob
 
     def calculate_probability_below_threshold(
         self, analysis: EnsembleAnalysis, threshold: float
     ) -> float:
         """
-        Estimate P(value < threshold) as fraction of ensemble members below threshold.
-        Returns value in [0, 1].
+        Estimate P(value < threshold) using Laplace-smoothed ensemble fraction.
+        Never returns exactly 0.0 or 1.0.
         """
         if not analysis.all_members:
             return 0.5
         members = np.array(analysis.all_members)
-        return float(np.mean(members < threshold))
+        hits = int(np.sum(members < threshold))
+        n = len(members)
+        raw = hits / n
+        prob = self._laplace_smooth(hits, n)
+        if raw in (0.0, 1.0):
+            logger.warning(
+                f"All {n} ensemble members {'below' if raw == 1.0 else 'above'} "
+                f"threshold {threshold:.1f} — Laplace-smoothed to {prob:.4f}"
+            )
+        return prob
 
     def calculate_probability_in_range(
         self, analysis: EnsembleAnalysis, low: float, high: float
     ) -> float:
         """
-        Estimate P(low <= value <= high) as fraction of ensemble members in range.
+        Estimate P(low <= value <= high) using Laplace-smoothed ensemble fraction.
+        Never returns exactly 0.0 or 1.0.
         """
         if not analysis.all_members:
             return 0.5
         members = np.array(analysis.all_members)
-        return float(np.mean((members >= low) & (members <= high)))
+        hits = int(np.sum((members >= low) & (members <= high)))
+        n = len(members)
+        return self._laplace_smooth(hits, n)
 
     def get_model_breakdown(self, analysis: EnsembleAnalysis) -> dict[str, dict]:
         """Return a summary dict of each model's contribution."""
