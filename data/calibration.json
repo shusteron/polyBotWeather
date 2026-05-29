@@ -55,9 +55,9 @@
     "market_probability": 0.0065,
     "edge": 0.9935,
     "confidence": 74.11,
-    "outcome": null,
+    "outcome": true,
     "resolution_date": "2026-05-29T12:00:00Z",
-    "pnl": null,
+    "pnl": 23329.4118,
     "location": "Seattle",
     "direction_type": "contrarian"
   },
