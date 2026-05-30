@@ -252,6 +252,17 @@ class EliteWeatherBot:
                 measurement=measurement,
                 tz_name=self._local_tz_name(lon),
             )
+            # Prepend NWS MOS-corrected point forecast (US cities only).
+            # NWS uses station-calibrated bias corrections that align with
+            # the ASOS readings Polymarket uses for resolution — this is the
+            # primary fix for systematic Open-Meteo gridded bias (e.g. LA +5°F).
+            nws = self.noaa.get_nws_daily_forecast(
+                lat, lon, target_date,
+                location=market.location or market.id,
+                measurement=measurement,
+            )
+            if nws is not None:
+                forecasts = [nws] + forecasts
             self._forecast_cache[cache_key] = forecasts
 
         # 5b. METAR station cross-check — validates model direction against real observations

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from math import erf, sqrt
 from typing import Optional
 
+import numpy as np
 import requests
 from loguru import logger
+
+from ..models import WeatherForecast
 
 NOAA_API_URL = "https://api.weather.gov"
 AVIATION_WEATHER_URL = "https://aviationweather.gov/api/data"
@@ -104,33 +108,92 @@ class NOAAClient:
             result["min_bias"] = round(model_min - actual_min, 2)
         return result
 
-    def get_point_forecast(self, lat: float, lon: float) -> Optional[dict]:
-        """NWS point forecast — US cities only."""
+    def get_nws_daily_forecast(
+        self,
+        lat: float,
+        lon: float,
+        target_date: str,
+        location: str = "unknown",
+        measurement: str = "max",
+    ) -> Optional[WeatherForecast]:
+        """
+        Fetch NWS MOS-corrected hourly point forecast and return a WeatherForecast
+        for the target_date (YYYY-MM-DD, in LOCAL city time).
+
+        NWS startTime is already in local timezone (e.g. 2026-05-31T14:00:00-07:00)
+        so filtering by date prefix is safe without UTC conversion.
+
+        US cities only — returns None gracefully for non-US locations (Canada etc).
+        Typical NWS 1-3 day forecast error: ~1.5°C (1-sigma), used as ensemble spread.
+        """
         try:
+            # Step 1: resolve NWS gridpoint for this lat/lon
             points_url = f"{NOAA_API_URL}/points/{lat:.4f},{lon:.4f}"
             resp = self.session.get(points_url, timeout=self.timeout)
+            if resp.status_code == 404:
+                logger.debug(f"NWS: no gridpoint for ({lat},{lon}) — non-US location")
+                return None
             resp.raise_for_status()
-            points_data = resp.json()
-            forecast_hourly_url = points_data.get("properties", {}).get("forecastHourly")
+            forecast_hourly_url = resp.json().get("properties", {}).get("forecastHourly")
             if not forecast_hourly_url:
                 return None
-            hourly_resp = self.session.get(forecast_hourly_url, timeout=self.timeout)
-            hourly_resp.raise_for_status()
-            return hourly_resp.json()
-        except Exception as exc:
-            logger.warning(f"NWS point forecast failed for ({lat},{lon}): {exc}")
-            return None
 
-    def parse_hourly_temperature(self, forecast_data: dict, target_date: str) -> list[float]:
-        """Extract hourly °F values from NWS forecast for target_date."""
-        periods = forecast_data.get("properties", {}).get("periods", [])
-        temps = []
-        for period in periods:
-            if period.get("startTime", "").startswith(target_date):
-                val = period.get("temperature")
-                if val is not None:
-                    try:
-                        temps.append(float(val))
-                    except (TypeError, ValueError):
-                        pass
-        return temps
+            # Step 2: fetch hourly forecast
+            resp2 = self.session.get(forecast_hourly_url, timeout=self.timeout)
+            resp2.raise_for_status()
+            periods = resp2.json().get("properties", {}).get("periods", [])
+
+            # Step 3: collect hourly °F values for the target LOCAL date
+            temps_f = []
+            for p in periods:
+                if p.get("startTime", "")[:10] != target_date:
+                    continue
+                val = p.get("temperature")
+                unit = p.get("temperatureUnit", "F")
+                if val is None:
+                    continue
+                try:
+                    f = float(val) if unit == "F" else float(val) * 9/5 + 32
+                    temps_f.append(f)
+                except (TypeError, ValueError):
+                    pass
+
+            if not temps_f:
+                logger.debug(f"NWS: no hourly data for {location} on {target_date}")
+                return None
+
+            # Step 4: compute daily stat in Celsius
+            point_f = max(temps_f) if measurement == "max" else min(temps_f)
+            point_c = (point_f - 32) * 5 / 9
+
+            # Step 5: generate synthetic ensemble around NWS point (sigma = 1.5°C)
+            # This represents typical NWS 1-3 day forecast error so the ensemble
+            # probability calculation properly reflects station-level uncertainty.
+            sigma = 1.5
+            rng = np.random.default_rng(seed=int(abs(lat * lon * 1000)) % (2**31))
+            members = rng.normal(point_c, sigma, 100).tolist()
+
+            logger.info(
+                f"NWS point forecast: {location} {target_date} "
+                f"{measurement}={point_f:.1f}°F ({point_c:.2f}°C)"
+            )
+            return WeatherForecast(
+                location=location,
+                lat=lat,
+                lon=lon,
+                target_date=target_date,
+                model_name="nws_point",
+                ensemble_members=members,
+                mean=float(point_c),
+                std=float(sigma),
+                spread=float(sigma * 2.56),
+                p10=float(point_c - 1.28 * sigma),
+                p25=float(point_c - 0.67 * sigma),
+                p50=float(point_c),
+                p75=float(point_c + 0.67 * sigma),
+                p90=float(point_c + 1.28 * sigma),
+            )
+
+        except Exception as exc:
+            logger.warning(f"NWS daily forecast failed for ({lat},{lon}): {exc}")
+            return None

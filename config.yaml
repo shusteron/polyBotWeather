@@ -17,11 +17,12 @@ weather:
     - "gem_global"      # 20 members — Canadian
     - "bom_access_global_ensemble"  # 17 members — Australian BOM
   model_weights:
-    ecmwf_ifs025: 0.40
-    gfs025: 0.25
-    icon_seamless: 0.20
-    gem_global: 0.10
-    bom_access_global_ensemble: 0.05
+    nws_point: 0.40         # NWS MOS station-calibrated — matches Polymarket source
+    ecmwf_ifs025: 0.24      # reduced from 0.40
+    gfs025: 0.15            # reduced from 0.25
+    icon_seamless: 0.12     # reduced from 0.20
+    gem_global: 0.06        # reduced from 0.10
+    bom_access_global_ensemble: 0.03  # reduced from 0.05
   request_timeout: 30
   min_ensemble_members: 50   # reject if total members below this
 
