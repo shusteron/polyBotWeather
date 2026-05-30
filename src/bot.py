@@ -497,22 +497,29 @@ class EliteWeatherBot:
             # and can be significantly wrong (off by 5°F+), so it is fallback only.
             if market.resolution_station:
                 hours_back = max(48, int((now - resolution_dt).total_seconds() / 3600) + 26)
-                # Cover the full local US day: filter UTC target_date AND next UTC day
-                # up to 09:00 UTC so afternoon/evening peaks aren't missed.
-                next_date = (
-                    datetime.strptime(target_date, "%Y-%m-%d") + timedelta(days=1)
-                ).strftime("%Y-%m-%d")
+
+                # Determine approximate local UTC offset from coordinates so we
+                # filter METAR by LOCAL calendar date, not UTC date.
+                # UTC midnight of "May 29 PDT" = May 29 07:00 UTC — filtering
+                # purely by UTC date includes the previous local evening's readings.
+                coords = self._get_coords(market)
+                utc_offset = self._local_utc_offset(coords[1] if coords else None)
+                target_dt = datetime.strptime(target_date, "%Y-%m-%d")
+                # local midnight in UTC = target_date 00:00 local + abs(utc_offset)
+                local_day_start_utc = target_dt - timedelta(hours=utc_offset)   # utc_offset is negative
+                local_day_end_utc   = local_day_start_utc + timedelta(hours=24)
+
                 metar_obs = self.noaa.get_metar_history(
                     market.resolution_station, hours=min(hours_back, 120)
                 )
                 temps = []
                 for obs in metar_obs:
                     obs_time = obs.get("obsTime") or obs.get("reportTime") or ""
-                    # Accept readings for UTC target_date, or next UTC day up to 09:00 UTC
-                    # (covers US cities UTC-4 to UTC-8 for the full local calendar day)
-                    on_target = obs_time.startswith(target_date)
-                    on_next_morning = obs_time.startswith(next_date) and obs_time[11:13] < "09"
-                    if on_target or on_next_morning:
+                    try:
+                        obs_dt = datetime.fromisoformat(obs_time.replace("Z", "+00:00")).replace(tzinfo=None)
+                    except Exception:
+                        continue
+                    if local_day_start_utc <= obs_dt < local_day_end_utc:
                         t = obs.get("temp")
                         if t is not None:
                             try:
@@ -523,6 +530,7 @@ class EliteWeatherBot:
                     actual_c = max(temps) if measurement == "max" else min(temps)
                     logger.debug(
                         f"METAR primary: {market.resolution_station} {target_date} "
+                        f"(local window {local_day_start_utc:%H:%M}–{local_day_end_utc:%H:%M} UTC) "
                         f"{measurement}={actual_c:.1f}°C from {len(temps)} observations"
                     )
 
@@ -620,6 +628,19 @@ class EliteWeatherBot:
                     f"edge={t.signal.edge:+.4f}"
                 )
         print()
+
+    @staticmethod
+    def _local_utc_offset(lon: Optional[float]) -> int:
+        """Return approximate summer UTC offset (negative) from longitude for US/Canada cities."""
+        if lon is None:
+            return -5  # safe default (CDT)
+        if lon < -115:
+            return -7  # PDT  (Seattle, LA, San Francisco, Las Vegas)
+        if lon < -100:
+            return -6  # MDT  (Denver, Phoenix)
+        if lon < -82:
+            return -5  # CDT  (Chicago, Houston, Dallas)
+        return -4      # EDT  (New York, Toronto, Atlanta, Miami)
 
     def _get_coords(self, market: MarketData) -> Optional[tuple[float, float]]:
         """Look up coordinates for the market location."""

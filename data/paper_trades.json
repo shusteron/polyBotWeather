@@ -362,8 +362,8 @@
       "paper_fill_price": 0.0085,
       "paper_size": 200.0,
       "status": "CLOSED",
-      "outcome": true,
-      "pnl": 23329.4118
+      "outcome": false,
+      "pnl": -200.0
     },
     {
       "signal": {
