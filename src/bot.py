@@ -492,28 +492,27 @@ class EliteWeatherBot:
 
             actual_c: Optional[float] = None
 
-            # Primary: Open-Meteo archive API (clean historical daily data)
-            coords = self._get_coords(market)
-            if coords:
-                lat, lon = coords
-                max_c, min_c = self.open_meteo.get_historical_daily(lat, lon, target_date)
-                actual_c = max_c if measurement == "max" else min_c
-                if actual_c is not None:
-                    logger.debug(
-                        f"Open-Meteo archive: {market.location} {target_date} "
-                        f"{measurement}={actual_c:.1f}°C"
-                    )
-
-            # Fallback: NOAA METAR daily max/min (longer lookback window)
-            if actual_c is None and market.resolution_station:
-                hours_back = max(48, int((now - resolution_dt.replace()).total_seconds() / 3600) + 26)
+            # Primary: NOAA METAR — same station data Polymarket uses for resolution.
+            # Open-Meteo archive blends forecast with observations for recent dates
+            # and can be significantly wrong (off by 5°F+), so it is fallback only.
+            if market.resolution_station:
+                hours_back = max(48, int((now - resolution_dt).total_seconds() / 3600) + 26)
+                # Cover the full local US day: filter UTC target_date AND next UTC day
+                # up to 09:00 UTC so afternoon/evening peaks aren't missed.
+                next_date = (
+                    datetime.strptime(target_date, "%Y-%m-%d") + timedelta(days=1)
+                ).strftime("%Y-%m-%d")
                 metar_obs = self.noaa.get_metar_history(
                     market.resolution_station, hours=min(hours_back, 120)
                 )
                 temps = []
                 for obs in metar_obs:
                     obs_time = obs.get("obsTime") or obs.get("reportTime") or ""
-                    if obs_time.startswith(target_date):
+                    # Accept readings for UTC target_date, or next UTC day up to 09:00 UTC
+                    # (covers US cities UTC-4 to UTC-8 for the full local calendar day)
+                    on_target = obs_time.startswith(target_date)
+                    on_next_morning = obs_time.startswith(next_date) and obs_time[11:13] < "09"
+                    if on_target or on_next_morning:
                         t = obs.get("temp")
                         if t is not None:
                             try:
@@ -523,9 +522,23 @@ class EliteWeatherBot:
                 if temps:
                     actual_c = max(temps) if measurement == "max" else min(temps)
                     logger.debug(
-                        f"METAR fallback: {market.resolution_station} {target_date} "
+                        f"METAR primary: {market.resolution_station} {target_date} "
                         f"{measurement}={actual_c:.1f}°C from {len(temps)} observations"
                     )
+
+            # Fallback: Open-Meteo archive (may be inaccurate for recent dates)
+            if actual_c is None:
+                coords = self._get_coords(market)
+                if coords:
+                    lat, lon = coords
+                    max_c, min_c = self.open_meteo.get_historical_daily(lat, lon, target_date)
+                    fallback_c = max_c if measurement == "max" else min_c
+                    if fallback_c is not None:
+                        actual_c = fallback_c
+                        logger.debug(
+                            f"Open-Meteo archive fallback: {market.location} {target_date} "
+                            f"{measurement}={actual_c:.1f}°C"
+                        )
 
             if actual_c is None or market.threshold is None:
                 logger.info(
