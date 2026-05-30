@@ -1,5 +1,5 @@
 {
-  "capital": 42473.7474,
+  "capital": 42072.9474,
   "trades": [
     {
       "signal": {
@@ -552,6 +552,134 @@
       },
       "timestamp": "2026-05-30T09:26:27.387826",
       "paper_fill_price": 0.262,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2383715",
+        "action": "BUY_YES",
+        "model_probability": 0.624113475177305,
+        "market_probability": 0.45,
+        "edge": 0.17411347517730497,
+        "confidence_score": {
+          "total": 73.1,
+          "ensemble_spread_score": 82.16,
+          "stability_score": 96.66,
+          "calibration_score": 69.55,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 2.13,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 82.16,
+            "stability": 96.66,
+            "calibration": 69.55,
+            "threshold_distance": 100.0,
+            "liquidity": 2.13,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.2,
+              "stability": 0.15,
+              "calibration": 0.1,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05,
+              "zone_reliability": 0.15,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2383715",
+        "title": "Will the highest temperature in Atlanta be 76\u00b0F or higher on May 31?",
+        "location": "Atlanta",
+        "event_type": "temperature",
+        "threshold": 76.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-05-31T12:00:00Z",
+        "yes_price": 0.45,
+        "no_price": 0.55,
+        "spread": 0.0,
+        "liquidity": 1065.5919,
+        "volume": 2174.05769,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ga/atlanta/KATL",
+        "resolution_station": "KATL"
+      },
+      "timestamp": "2026-05-30T20:19:34.084717",
+      "paper_fill_price": 0.452,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2391532",
+        "action": "BUY_YES",
+        "model_probability": 0.851063829787234,
+        "market_probability": 0.28,
+        "edge": 0.571063829787234,
+        "confidence_score": {
+          "total": 72.92,
+          "ensemble_spread_score": 80.65,
+          "stability_score": 96.72,
+          "calibration_score": 69.55,
+          "threshold_distance_score": 100.0,
+          "liquidity_score": 3.27,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 80.65,
+            "stability": 96.72,
+            "calibration": 69.55,
+            "threshold_distance": 100.0,
+            "liquidity": 3.27,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.2,
+              "stability": 0.15,
+              "calibration": 0.1,
+              "threshold_distance": 0.2,
+              "liquidity": 0.1,
+              "horizon": 0.05,
+              "zone_reliability": 0.15,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2391532",
+        "title": "Will the highest temperature in Los Angeles be 74\u00b0F or higher on June 1?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 74.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-01T12:00:00Z",
+        "yes_price": 0.28,
+        "no_price": 0.72,
+        "spread": 0.0,
+        "liquidity": 1637.4256,
+        "volume": 700.8386800000001,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-05-30T21:04:49.942326",
+      "paper_fill_price": 0.282,
       "paper_size": 200.0,
       "status": "OPEN",
       "outcome": null,

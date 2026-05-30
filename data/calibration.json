@@ -96,5 +96,29 @@
     "pnl": null,
     "location": "San Francisco",
     "direction_type": "contrarian"
+  },
+  {
+    "market_id": "2383715",
+    "predicted_probability": 0.624113475177305,
+    "market_probability": 0.45,
+    "edge": 0.17411347517730497,
+    "confidence": 73.1,
+    "outcome": null,
+    "resolution_date": "2026-05-31T12:00:00Z",
+    "pnl": null,
+    "location": "Atlanta",
+    "direction_type": "contrarian"
+  },
+  {
+    "market_id": "2391532",
+    "predicted_probability": 0.851063829787234,
+    "market_probability": 0.28,
+    "edge": 0.571063829787234,
+    "confidence": 72.92,
+    "outcome": null,
+    "resolution_date": "2026-06-01T12:00:00Z",
+    "pnl": null,
+    "location": "Los Angeles",
+    "direction_type": "contrarian"
   }
 ]
