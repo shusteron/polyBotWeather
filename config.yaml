@@ -51,9 +51,9 @@ thresholds:
 
   # ── Price floor (no lottery tickets) ────────────────────────────────────
   # The side we are buying must be priced above this.
-  # 0.005 = 0.5 cents.  Sub-cent bets have enormous variance and require
-  # the model to be right with very high precision — which it isn't.
-  min_market_price: 0.005
+  # 0.02 = 2 cents minimum. Sub-2-cent bets require extreme model precision
+  # that weather ensembles cannot provide.
+  min_market_price: 0.02
 
   # ── Dynamic edge requirement ─────────────────────────────────────────────
   # When the model and the market AGREE on direction (both lean YES, or
