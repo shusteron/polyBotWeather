@@ -224,6 +224,16 @@ class EliteWeatherBot:
 
         lat, lon = coords
 
+        # 2b. Only trade markets where NWS coverage is available (US cities).
+        # Non-US cities rely solely on Open-Meteo gridded data which has a
+        # systematic bias of 5-10°F vs ASOS station readings. Until a calibrated
+        # station-level forecast source exists for non-US cities, skip them.
+        if not self._has_nws_coverage(lat, lon, market.location or ""):
+            logger.debug(
+                f"Skipping {market.id} ({market.location}) — outside NWS coverage area"
+            )
+            return
+
         # 3. Determine target date from resolution date
         target_date = self._get_target_date(market)
         if not target_date:
@@ -653,6 +663,33 @@ class EliteWeatherBot:
         if lon < -82:
             return -5  # CDT  (Chicago, Houston, Dallas)
         return -4      # EDT  (New York, Toronto, Atlanta, Miami)
+
+    # Explicit US cities with NWS MOS coverage.
+    _NWS_CITIES: frozenset[str] = frozenset({
+        "New York", "NYC", "Los Angeles", "LA", "Miami", "Chicago", "Phoenix",
+        "Dallas", "Houston", "Seattle", "Denver", "Atlanta", "Boston",
+        "San Francisco", "Las Vegas", "Orlando", "New Orleans", "Minneapolis",
+        "Portland", "Nashville", "Austin", "Washington", "Philadelphia",
+        "Charlotte", "Tampa", "San Diego", "Detroit",
+    })
+
+    # Non-US cities that fall inside the US lat/lon bounding box (border cases).
+    _NON_NWS_CITIES: frozenset[str] = frozenset({
+        "Toronto", "Montreal", "Vancouver", "Calgary", "Ottawa", "Winnipeg",
+        "Quebec", "Halifax",
+    })
+
+    @classmethod
+    def _has_nws_coverage(cls, lat: float, lon: float, location: str = "") -> bool:
+        """Return True if this city has NWS MOS point forecast coverage."""
+        if location and location in cls._NON_NWS_CITIES:
+            return False
+        if location and location in cls._NWS_CITIES:
+            return True
+        # Fallback bounding box for city names not in either list
+        if 24.0 <= lat <= 49.0 and -125.0 <= lon <= -66.0:
+            return True
+        return False
 
     @staticmethod
     def _local_tz_name(lon: Optional[float]) -> str:
