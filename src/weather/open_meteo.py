@@ -44,16 +44,18 @@ class OpenMeteoClient:
         target_date: str,
         variable: str = "temperature_2m",
         location: str = "unknown",
-        measurement: str = "max",  # "max", "min", or "mean"
+        measurement: str = "max",
+        tz_name: str = "UTC",
     ) -> list[WeatherForecast]:
         """
         Fetch ensemble forecasts for all configured models.
-        measurement: how to aggregate hourly → daily ("max" for highest temp, "min" for lowest)
+        tz_name: IANA timezone of the city — ensures daily aggregation uses
+                 the local calendar day, not UTC (critical for UTC-offset cities).
         """
         results: list[WeatherForecast] = []
         for model_key in ENSEMBLE_MODELS:
             forecast = self._fetch_model_ensemble(
-                lat, lon, target_date, model_key, variable, location, measurement
+                lat, lon, target_date, model_key, variable, location, measurement, tz_name
             )
             if forecast:
                 results.append(forecast)
@@ -69,15 +71,13 @@ class OpenMeteoClient:
         variable: str,
         location: str,
         measurement: str = "max",
+        tz_name: str = "UTC",
     ) -> Optional[WeatherForecast]:
         try:
-            # Determine the date range
             tdate = date.fromisoformat(target_date)
             start = tdate.strftime("%Y-%m-%d")
             end = tdate.strftime("%Y-%m-%d")
 
-            # Build ensemble member variable list
-            # Open-Meteo ensemble uses member0..memberN suffix
             hourly_variable = variable
 
             params = {
@@ -87,7 +87,7 @@ class OpenMeteoClient:
                 "hourly": hourly_variable,
                 "start_date": start,
                 "end_date": end,
-                "timezone": "UTC",
+                "timezone": tz_name,
             }
 
             resp = self.session.get(ENSEMBLE_URL, params=params, timeout=self.timeout)

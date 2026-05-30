@@ -250,6 +250,7 @@ class EliteWeatherBot:
                 lat, lon, target_date,
                 location=market.location or market.id,
                 measurement=measurement,
+                tz_name=self._local_tz_name(lon),
             )
             self._forecast_cache[cache_key] = forecasts
 
@@ -641,6 +642,19 @@ class EliteWeatherBot:
         if lon < -82:
             return -5  # CDT  (Chicago, Houston, Dallas)
         return -4      # EDT  (New York, Toronto, Atlanta, Miami)
+
+    @staticmethod
+    def _local_tz_name(lon: Optional[float]) -> str:
+        """Return IANA timezone name from longitude for US/Canada cities (summer)."""
+        if lon is None:
+            return "America/Chicago"
+        if lon < -115:
+            return "America/Los_Angeles"
+        if lon < -100:
+            return "America/Denver"
+        if lon < -82:
+            return "America/Chicago"
+        return "America/New_York"
 
     def _get_coords(self, market: MarketData) -> Optional[tuple[float, float]]:
         """Look up coordinates for the market location."""
