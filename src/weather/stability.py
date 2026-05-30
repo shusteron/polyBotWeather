@@ -37,7 +37,6 @@ class ForecastStabilityEngine:
             "model": forecast.model_name,
         }
         self._history[key].append(run)
-        self._save_history()
 
     def calculate_stability(
         self, location: str, target_date: str, threshold: Optional[float] = None, lookback_hours: int = 72
@@ -141,6 +140,27 @@ class ForecastStabilityEngine:
             stability_score=stability_score,
             direction_consistent=direction_consistent,
         )
+
+    def save(self) -> None:
+        """Prune stale entries then persist history — call once after a full scan cycle."""
+        self._prune_old_entries()
+        self._save_history()
+
+    def _prune_old_entries(self, keep_hours: int = 96) -> None:
+        """Remove forecast runs older than keep_hours to keep the file small."""
+        cutoff = datetime.utcnow() - timedelta(hours=keep_hours)
+        for key in list(self._history.keys()):
+            kept = []
+            for run in self._history[key]:
+                try:
+                    if datetime.fromisoformat(run["timestamp"]) >= cutoff:
+                        kept.append(run)
+                except Exception:
+                    kept.append(run)
+            if kept:
+                self._history[key] = kept
+            else:
+                del self._history[key]
 
     def _load_history(self) -> None:
         """Load forecast history from JSON file."""

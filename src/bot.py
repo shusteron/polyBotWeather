@@ -203,6 +203,9 @@ class EliteWeatherBot:
                 self.trade_logger.log_error(f"process_market({market.id})", exc)
                 logger.exception(f"Unhandled error processing market {market.id}")
 
+        # Save stability history once after all markets processed
+        self.stability_engine.save()
+
         # Final status
         self.trade_logger.log_status(
             self.paper_trader.get_portfolio_value(),

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
+
+_ISRAEL = timezone(timedelta(hours=3))  # EEST (UTC+3, Israel summer)
 
 import numpy as np
 import pandas as pd
@@ -18,6 +20,20 @@ class ExcelExporter:
     """
     XLSX and CSV reporting for all trade data and analytics.
     """
+
+    @staticmethod
+    def _to_il(ts: str) -> str:
+        """Convert a UTC timestamp string to Israel time (UTC+3), formatted for Excel."""
+        if not ts:
+            return ""
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            il = dt.astimezone(_ISRAEL)
+            return il.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            return ts
 
     HEADER_FILL = PatternFill(start_color="1F3864", end_color="1F3864", fill_type="solid")
     HEADER_FONT = Font(color="FFFFFF", bold=True)
@@ -69,7 +85,7 @@ class ExcelExporter:
         headers = [
             "Market ID", "Title", "Location", "Action", "Model Prob",
             "Market Prob", "Edge", "Confidence", "Fill Price", "Size ($)",
-            "Status", "Outcome", "PnL ($)", "Entry Time", "Resolution Date",
+            "Status", "Outcome", "PnL ($)", "Entry Time (IL)", "Resolution Date (IL)",
         ]
         self._write_headers(ws, headers)
 
@@ -87,8 +103,8 @@ class ExcelExporter:
             ws.cell(row_idx, 11, trade.status)
             ws.cell(row_idx, 12, str(trade.outcome) if trade.outcome is not None else "")
             ws.cell(row_idx, 13, round(trade.pnl, 2) if trade.pnl is not None else "")
-            ws.cell(row_idx, 14, trade.timestamp or "")
-            ws.cell(row_idx, 15, trade.market.resolution_date or "")
+            ws.cell(row_idx, 14, self._to_il(trade.timestamp or ""))
+            ws.cell(row_idx, 15, self._to_il(trade.market.resolution_date or ""))
 
             # Colour PnL row
             if trade.pnl is not None:
@@ -123,7 +139,7 @@ class ExcelExporter:
         ws = wb.create_sheet("Calibration Metrics")
         headers = [
             "Market ID", "Predicted Prob", "Market Prob", "Edge",
-            "Confidence", "Outcome", "PnL ($)", "Resolution Date",
+            "Confidence", "Outcome", "PnL ($)", "Resolution Date (IL)",
         ]
         self._write_headers(ws, headers)
 
@@ -137,7 +153,7 @@ class ExcelExporter:
             ws.cell(row_idx, 6, str(outcome) if outcome is not None else "PENDING")
             pnl = r.get("pnl")
             ws.cell(row_idx, 7, round(float(pnl), 2) if pnl is not None else "")
-            ws.cell(row_idx, 8, r.get("resolution_date", ""))
+            ws.cell(row_idx, 8, self._to_il(r.get("resolution_date", "")))
 
         self._auto_width(ws)
 
