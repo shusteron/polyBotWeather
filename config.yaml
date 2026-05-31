@@ -37,7 +37,7 @@ risk:
 
 thresholds:
   # ── Confidence ──────────────────────────────────────────────────────────
-  min_confidence: 72
+  min_confidence: 55
 
   # ── Forecast quality ────────────────────────────────────────────────────
   max_ensemble_spread: 0.15      # weighted_std / 10 → reject if std > 1.5°C
