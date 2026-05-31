@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "market_id": "2391532",
+    "predicted_probability": 0.8381742738589212,
+    "market_probability": 0.29,
+    "edge": 0.5481742738589213,
+    "confidence": 65.66,
+    "outcome": null,
+    "resolution_date": "2026-06-01T12:00:00Z",
+    "pnl": null,
+    "location": "Los Angeles",
+    "direction_type": "contrarian"
+  },
+  {
+    "market_id": "2399769",
+    "predicted_probability": 0.6473029045643154,
+    "market_probability": 0.935,
+    "edge": -0.28769709543568467,
+    "confidence": 57.42,
+    "outcome": null,
+    "resolution_date": "2026-06-02T12:00:00Z",
+    "pnl": null,
+    "location": "Chicago",
+    "direction_type": "same"
+  },
+  {
+    "market_id": "2400000",
+    "predicted_probability": 0.45643153526970953,
+    "market_probability": 0.175,
+    "edge": 0.28143153526970954,
+    "confidence": 56.4,
+    "outcome": null,
+    "resolution_date": "2026-06-02T12:00:00Z",
+    "pnl": null,
+    "location": "Houston",
+    "direction_type": "same"
+  },
+  {
+    "market_id": "2400011",
+    "predicted_probability": 0.6431535269709544,
+    "market_probability": 0.22,
+    "edge": 0.42315352697095443,
+    "confidence": 57.98,
+    "outcome": null,
+    "resolution_date": "2026-06-02T12:00:00Z",
+    "pnl": null,
+    "location": "Los Angeles",
+    "direction_type": "contrarian"
+  }
+]

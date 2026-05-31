@@ -1,1 +1,253 @@
-{"capital": 10000.0, "trades": []}
+{
+  "capital": 9222.1775,
+  "trades": [
+    {
+      "signal": {
+        "market_id": "2391532",
+        "action": "BUY_YES",
+        "model_probability": 0.8381742738589212,
+        "market_probability": 0.29,
+        "edge": 0.5481742738589213,
+        "confidence_score": {
+          "total": 65.66,
+          "ensemble_spread_score": 77.22,
+          "stability_score": 89.85,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 22.57,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 77.22,
+            "stability": 89.85,
+            "calibration": 50.0,
+            "liquidity": 22.57,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2391532",
+        "title": "Will the highest temperature in Los Angeles be 74\u00b0F or higher on June 1?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 74.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-01T12:00:00Z",
+        "yes_price": 0.29,
+        "no_price": 0.71,
+        "spread": 0.0,
+        "liquidity": 1205.8781,
+        "volume": 1496.7874749999999,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-05-31T07:21:06.739297",
+      "paper_fill_price": 0.292,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2399769",
+        "action": "BUY_NO",
+        "model_probability": 0.6473029045643154,
+        "market_probability": 0.935,
+        "edge": -0.28769709543568467,
+        "confidence_score": {
+          "total": 57.42,
+          "ensemble_spread_score": 77.15,
+          "stability_score": 65.0,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 0.85,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 77.15,
+            "stability": 65.0,
+            "calibration": 50.0,
+            "liquidity": 0.85,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 195.99,
+        "recommended_size": 195.99
+      },
+      "market": {
+        "id": "2399769",
+        "title": "Will the highest temperature in Chicago be 70\u00b0F or higher on June 2?",
+        "location": "Chicago",
+        "event_type": "temperature",
+        "threshold": 70.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-02T12:00:00Z",
+        "yes_price": 0.935,
+        "no_price": 0.065,
+        "spread": 0.0,
+        "liquidity": 141.7633,
+        "volume": 322.454096,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/il/chicago/KORD",
+        "resolution_station": "KORD"
+      },
+      "timestamp": "2026-05-31T07:21:34.680005",
+      "paper_fill_price": 0.067,
+      "paper_size": 195.99,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2400000",
+        "action": "BUY_YES",
+        "model_probability": 0.45643153526970953,
+        "market_probability": 0.175,
+        "edge": 0.28143153526970954,
+        "confidence_score": {
+          "total": 56.4,
+          "ensemble_spread_score": 72.18,
+          "stability_score": 65.0,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 2.37,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 72.18,
+            "stability": 65.0,
+            "calibration": 50.0,
+            "liquidity": 2.37,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 192.06,
+        "recommended_size": 192.06
+      },
+      "market": {
+        "id": "2400000",
+        "title": "Will the highest temperature in Houston be 92\u00b0F or higher on June 2?",
+        "location": "Houston",
+        "event_type": "temperature",
+        "threshold": 92.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-02T12:00:00Z",
+        "yes_price": 0.175,
+        "no_price": 0.825,
+        "spread": 0.0,
+        "liquidity": 216.0678,
+        "volume": 11.0,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/tx/houston/KHOU",
+        "resolution_station": "KHOU"
+      },
+      "timestamp": "2026-05-31T07:21:43.879539",
+      "paper_fill_price": 0.177,
+      "paper_size": 192.06,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2400011",
+        "action": "BUY_YES",
+        "model_probability": 0.6431535269709544,
+        "market_probability": 0.22,
+        "edge": 0.42315352697095443,
+        "confidence_score": {
+          "total": 57.98,
+          "ensemble_spread_score": 76.58,
+          "stability_score": 65.0,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 5.6,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 76.58,
+            "stability": 65.0,
+            "calibration": 50.0,
+            "liquidity": 5.6,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 188.22,
+        "recommended_size": 188.22
+      },
+      "market": {
+        "id": "2400011",
+        "title": "Will the highest temperature in Los Angeles be 74\u00b0F or higher on June 2?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 74.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-02T12:00:00Z",
+        "yes_price": 0.22,
+        "no_price": 0.78,
+        "spread": 0.0,
+        "liquidity": 374.4092,
+        "volume": 89.077618,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-05-31T07:21:47.031680",
+      "paper_fill_price": 0.222,
+      "paper_size": 188.22,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    }
+  ]
+}
