@@ -1,5 +1,5 @@
 {
-  "capital": 9222.1775,
+  "capital": 9075.9356,
   "trades": [
     {
       "signal": {
@@ -245,6 +245,68 @@
       "timestamp": "2026-05-31T07:21:47.031680",
       "paper_fill_price": 0.222,
       "paper_size": 188.22,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2391543",
+        "action": "BUY_NO",
+        "model_probability": 0.6804979253112033,
+        "market_probability": 0.935,
+        "edge": -0.2545020746887967,
+        "confidence_score": {
+          "total": 67.3,
+          "ensemble_spread_score": 73.36,
+          "stability_score": 99.55,
+          "calibration_score": 50.0,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 27.01,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 73.36,
+            "stability": 99.55,
+            "calibration": 50.0,
+            "liquidity": 27.01,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 184.44,
+        "recommended_size": 145.95
+      },
+      "market": {
+        "id": "2391543",
+        "title": "Will the highest temperature in San Francisco be 68\u00b0F or higher on June 1?",
+        "location": "San Francisco",
+        "event_type": "temperature",
+        "threshold": 68.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-01T12:00:00Z",
+        "yes_price": 0.935,
+        "no_price": 0.065,
+        "spread": 0.0,
+        "liquidity": 1423.4687,
+        "volume": 638.1447260000002,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/san-francisco/KSFO",
+        "resolution_station": "KSFO"
+      },
+      "timestamp": "2026-05-31T09:40:12.988085",
+      "paper_fill_price": 0.067,
+      "paper_size": 145.95,
       "status": "OPEN",
       "outcome": null,
       "pnl": null
