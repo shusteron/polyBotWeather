@@ -64,8 +64,9 @@ thresholds:
   #
   # When the model DISAGREES with the market direction (model says 39%,
   # market says 1.6%) that is a strong structural signal — lower bar.
-  min_edge_same_direction: 0.25  # e.g. model=86%, market=99.7% → gap=13.7% < 25% → skip
-  min_edge_contrarian: 0.15      # e.g. model=39%, market=1.6%  → gap=37.4% > 15% → trade
+  min_edge_same_direction: 0.30  # e.g. model=86%, market=99.7% → gap=13.7% < 30% → skip
+  min_edge_contrarian: 0.20      # e.g. model=39%, market=1.6%  → gap=37.4% > 20% → trade
+  min_purchased_side_prob: 0.35  # model must give ≥35% to the side being purchased (blocks model=68% YES → buy NO)
 
   # ── Zone reliability gate ────────────────────────────────────────────────
   # Once ≥20 resolved records exist in a probability band (0-10%, 10-20%…)

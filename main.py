@@ -68,6 +68,8 @@ Examples:
         print("Scan complete. Run with --mode status to see portfolio.")
 
     elif args.mode == "report":
+        print("Resolving expired positions before generating report...")
+        bot.resolve_expired_markets()
         print(f"Generating report in {args.output} ...")
         path = bot.export_report(args.output)
         print(f"Report exported to {path}")

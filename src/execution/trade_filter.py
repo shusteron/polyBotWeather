@@ -49,19 +49,23 @@ class TradeFilter:
         min_edge_contrarian: float = 0.15,       # model and market disagree on direction
         # Zone reliability (0-100).  Only enforced once enough samples exist.
         min_zone_reliability: float = 40.0,
+        # Minimum model probability for the side being purchased.
+        # Prevents buying a side the model itself considers unlikely (e.g. model=68% YES → don't buy NO).
+        min_purchased_side_prob: float = 0.35,
     ):
-        self.min_liquidity            = min_liquidity
-        self.max_spread_pct           = max_spread_pct
-        self.min_hours_to_resolution  = min_hours_to_resolution
-        self.max_ensemble_spread      = max_ensemble_spread
-        self.min_stability_score      = min_stability_score
-        self.min_threshold_distance   = min_threshold_distance
-        self.min_provider_agreement   = min_provider_agreement
-        self.min_confidence           = min_confidence
-        self.min_market_price         = min_market_price
-        self.min_edge_same_direction  = min_edge_same_direction
-        self.min_edge_contrarian      = min_edge_contrarian
-        self.min_zone_reliability     = min_zone_reliability
+        self.min_liquidity             = min_liquidity
+        self.max_spread_pct            = max_spread_pct
+        self.min_hours_to_resolution   = min_hours_to_resolution
+        self.max_ensemble_spread       = max_ensemble_spread
+        self.min_stability_score       = min_stability_score
+        self.min_threshold_distance    = min_threshold_distance
+        self.min_provider_agreement    = min_provider_agreement
+        self.min_confidence            = min_confidence
+        self.min_market_price          = min_market_price
+        self.min_edge_same_direction   = min_edge_same_direction
+        self.min_edge_contrarian       = min_edge_contrarian
+        self.min_zone_reliability      = min_zone_reliability
+        self.min_purchased_side_prob   = min_purchased_side_prob
 
     def evaluate(
         self,
@@ -180,6 +184,17 @@ class TradeFilter:
                     f"(n={zone_sample_count})"
                 )
 
+        # 12. Model must believe in the side being purchased.
+        #     If edge > 0 we buy YES; if edge < 0 we buy NO.
+        #     Blocks cases like: model=68% YES → edge negative → buy NO at 32% model prob.
+        purchased_side_prob = model_prob if edge > 0 else (1.0 - model_prob)
+        if purchased_side_prob < self.min_purchased_side_prob:
+            side = "YES" if edge > 0 else "NO"
+            rejection_reasons.append(
+                f"Model probability for {side} side too low: "
+                f"{purchased_side_prob:.3f} < {self.min_purchased_side_prob:.3f}"
+            )
+
         should_trade = len(rejection_reasons) == 0
         return should_trade, rejection_reasons
 
@@ -209,16 +224,17 @@ class TradeFilter:
     def from_config(cls, cfg: dict) -> "TradeFilter":
         t = cfg.get("thresholds", {})
         return cls(
-            min_liquidity           = t.get("min_liquidity",            1_000.0),
-            max_spread_pct          = t.get("max_spread_pct",           0.05),
-            min_hours_to_resolution = t.get("min_hours_to_resolution",  24.0),
-            max_ensemble_spread     = t.get("max_ensemble_spread",      0.15),
-            min_stability_score     = t.get("min_stability_score",      0.5),
-            min_threshold_distance  = t.get("min_threshold_distance",   2.0),
-            min_provider_agreement  = t.get("min_provider_agreement",   0.6),
-            min_confidence          = t.get("min_confidence",           72.0),
-            min_market_price        = t.get("min_market_price",         0.005),
-            min_edge_same_direction = t.get("min_edge_same_direction",  0.30),
-            min_edge_contrarian     = t.get("min_edge_contrarian",      0.15),
-            min_zone_reliability    = t.get("min_zone_reliability",     40.0),
+            min_liquidity            = t.get("min_liquidity",             1_000.0),
+            max_spread_pct           = t.get("max_spread_pct",            0.05),
+            min_hours_to_resolution  = t.get("min_hours_to_resolution",   24.0),
+            max_ensemble_spread      = t.get("max_ensemble_spread",       0.15),
+            min_stability_score      = t.get("min_stability_score",       0.5),
+            min_threshold_distance   = t.get("min_threshold_distance",    2.0),
+            min_provider_agreement   = t.get("min_provider_agreement",    0.6),
+            min_confidence           = t.get("min_confidence",            72.0),
+            min_market_price         = t.get("min_market_price",          0.005),
+            min_edge_same_direction  = t.get("min_edge_same_direction",   0.30),
+            min_edge_contrarian      = t.get("min_edge_contrarian",       0.15),
+            min_zone_reliability     = t.get("min_zone_reliability",      40.0),
+            min_purchased_side_prob  = t.get("min_purchased_side_prob",   0.35),
         )
