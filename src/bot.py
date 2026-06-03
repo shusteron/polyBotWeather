@@ -4,6 +4,7 @@ import os
 from datetime import datetime, date, timedelta
 from typing import Optional
 
+import requests
 import yaml
 from loguru import logger
 
@@ -473,12 +474,59 @@ class EliteWeatherBot:
             self.calibration_engine.record_trade(calib_record)
             self.trade_logger.log_calibration_update(calib_record)
 
+    def _fetch_polymarket_outcome(self, market_id: str) -> Optional[bool]:
+        """
+        Query the Polymarket gamma API for the resolved outcome of a market.
+
+        Returns True (YES resolved), False (NO resolved), or None (not yet resolved
+        or data unavailable). This is the authoritative source — Polymarket resolves
+        using Weather Underground, which can differ from NOAA METAR by 1-2°F.
+        """
+        try:
+            resp = requests.get(
+                f"https://gamma-api.polymarket.com/markets/{market_id}",
+                headers={"User-Agent": "WeatherPredictionBot/1.0"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning(f"Polymarket API fetch failed for {market_id}: {exc}")
+            return None
+
+        outcomes = data.get("outcomes") or []
+        prices = data.get("outcomePrices") or []
+
+        if len(outcomes) < 2 or len(prices) < 2:
+            return None
+
+        try:
+            yes_idx = next(i for i, o in enumerate(outcomes) if str(o).lower() == "yes")
+        except StopIteration:
+            yes_idx = 0
+
+        try:
+            yes_price = float(prices[yes_idx])
+            no_price  = float(prices[1 - yes_idx])
+        except (ValueError, IndexError):
+            return None
+
+        # Market is resolved when one token is worth exactly $1 and the other $0
+        if yes_price == 1.0 and no_price == 0.0:
+            return True
+        if yes_price == 0.0 and no_price == 1.0:
+            return False
+
+        return None  # still trading, not resolved yet
+
     def resolve_expired_markets(self) -> None:
         """
         Check all open trades whose resolution_date has passed.
-        Uses the Open-Meteo archive API (primary) and NOAA METAR history (fallback)
-        to fetch the actual observed max/min temp for the resolution date and
-        determine the correct YES/NO outcome.
+
+        Primary source: Polymarket gamma API — authoritative, uses the same
+        Weather Underground data Polymarket resolves against.
+        Fallback: NOAA METAR + Open-Meteo archive (for markets not yet resolved
+        on Polymarket, e.g. within hours of resolution deadline).
         """
         open_trades = self.paper_trader.get_open_trades()
         now = datetime.utcnow()
@@ -503,98 +551,99 @@ class EliteWeatherBot:
 
             logger.info(f"Market {market.id} is past resolution date — attempting auto-resolve")
 
-            # Determine measurement type from title
-            title_lower = market.title.lower()
-            if "highest" in title_lower or "high temp" in title_lower or "maximum" in title_lower:
-                measurement = "max"
-            elif "lowest" in title_lower or "low temp" in title_lower or "minimum" in title_lower:
-                measurement = "min"
-            else:
-                measurement = "max"
+            # ── Primary: read outcome directly from Polymarket ──────────────
+            outcome: Optional[bool] = self._fetch_polymarket_outcome(market.id)
 
-            actual_c: Optional[float] = None
-
-            # Primary: NOAA METAR — same station data Polymarket uses for resolution.
-            # Open-Meteo archive blends forecast with observations for recent dates
-            # and can be significantly wrong (off by 5°F+), so it is fallback only.
-            if market.resolution_station:
-                hours_back = max(48, int((now - resolution_dt).total_seconds() / 3600) + 26)
-
-                # Determine approximate local UTC offset from coordinates so we
-                # filter METAR by LOCAL calendar date, not UTC date.
-                # UTC midnight of "May 29 PDT" = May 29 07:00 UTC — filtering
-                # purely by UTC date includes the previous local evening's readings.
-                coords = self._get_coords(market)
-                utc_offset = self._local_utc_offset(coords[1] if coords else None)
-                target_dt = datetime.strptime(target_date, "%Y-%m-%d")
-                # local midnight in UTC = target_date 00:00 local + abs(utc_offset)
-                local_day_start_utc = target_dt - timedelta(hours=utc_offset)   # utc_offset is negative
-                local_day_end_utc   = local_day_start_utc + timedelta(hours=24)
-
-                metar_obs = self.noaa.get_metar_history(
-                    market.resolution_station, hours=min(hours_back, 120)
+            if outcome is not None:
+                logger.info(
+                    f"Resolving {market.id} via Polymarket API → outcome={'YES' if outcome else 'NO'}"
                 )
-                temps = []
-                for obs in metar_obs:
-                    obs_time = obs.get("obsTime") or obs.get("reportTime") or ""
-                    try:
-                        obs_dt = datetime.fromisoformat(obs_time.replace("Z", "+00:00")).replace(tzinfo=None)
-                    except Exception:
-                        continue
-                    if local_day_start_utc <= obs_dt < local_day_end_utc:
-                        t = obs.get("temp")
-                        if t is not None:
-                            try:
-                                temps.append(float(t))
-                            except (TypeError, ValueError):
-                                pass
-                if temps:
-                    actual_c = max(temps) if measurement == "max" else min(temps)
-                    logger.debug(
-                        f"METAR primary: {market.resolution_station} {target_date} "
-                        f"(local window {local_day_start_utc:%H:%M}–{local_day_end_utc:%H:%M} UTC) "
-                        f"{measurement}={actual_c:.1f}°C from {len(temps)} observations"
-                    )
+            else:
+                # ── Fallback: estimate from weather data ────────────────────
+                logger.debug(
+                    f"Market {market.id} not yet resolved on Polymarket — "
+                    f"falling back to weather data"
+                )
 
-            # Fallback: Open-Meteo archive (may be inaccurate for recent dates)
-            if actual_c is None:
-                coords = self._get_coords(market)
-                if coords:
-                    lat, lon = coords
-                    max_c, min_c = self.open_meteo.get_historical_daily(lat, lon, target_date)
-                    fallback_c = max_c if measurement == "max" else min_c
-                    if fallback_c is not None:
-                        actual_c = fallback_c
+                title_lower = market.title.lower()
+                if "highest" in title_lower or "high temp" in title_lower or "maximum" in title_lower:
+                    measurement = "max"
+                elif "lowest" in title_lower or "low temp" in title_lower or "minimum" in title_lower:
+                    measurement = "min"
+                else:
+                    measurement = "max"
+
+                actual_c: Optional[float] = None
+
+                if market.resolution_station:
+                    hours_back = max(48, int((now - resolution_dt).total_seconds() / 3600) + 26)
+                    coords = self._get_coords(market)
+                    utc_offset = self._local_utc_offset(coords[1] if coords else None)
+                    target_dt = datetime.strptime(target_date, "%Y-%m-%d")
+                    local_day_start_utc = target_dt - timedelta(hours=utc_offset)
+                    local_day_end_utc   = local_day_start_utc + timedelta(hours=24)
+
+                    metar_obs = self.noaa.get_metar_history(
+                        market.resolution_station, hours=min(hours_back, 120)
+                    )
+                    temps = []
+                    for obs in metar_obs:
+                        obs_time = obs.get("obsTime") or obs.get("reportTime") or ""
+                        try:
+                            obs_dt = datetime.fromisoformat(obs_time.replace("Z", "+00:00")).replace(tzinfo=None)
+                        except Exception:
+                            continue
+                        if local_day_start_utc <= obs_dt < local_day_end_utc:
+                            t = obs.get("temp")
+                            if t is not None:
+                                try:
+                                    temps.append(float(t))
+                                except (TypeError, ValueError):
+                                    pass
+                    if temps:
+                        actual_c = max(temps) if measurement == "max" else min(temps)
                         logger.debug(
-                            f"Open-Meteo archive fallback: {market.location} {target_date} "
-                            f"{measurement}={actual_c:.1f}°C"
+                            f"METAR fallback: {market.resolution_station} {target_date} "
+                            f"{measurement}={actual_c:.1f}°C from {len(temps)} obs"
                         )
 
-            if actual_c is None or market.threshold is None:
+                if actual_c is None:
+                    coords = self._get_coords(market)
+                    if coords:
+                        lat, lon = coords
+                        max_c, min_c = self.open_meteo.get_historical_daily(lat, lon, target_date)
+                        fallback_c = max_c if measurement == "max" else min_c
+                        if fallback_c is not None:
+                            actual_c = fallback_c
+                            logger.debug(
+                                f"Open-Meteo fallback: {market.location} {target_date} "
+                                f"{measurement}={actual_c:.1f}°C"
+                            )
+
+                if actual_c is None or market.threshold is None:
+                    logger.info(
+                        f"Cannot auto-resolve {market.id} '{market.title[:50]}' — "
+                        f"no data available from Polymarket or weather APIs"
+                    )
+                    continue
+
+                threshold_c = market.threshold
+                if market.threshold_unit == "fahrenheit":
+                    threshold_c = (market.threshold - 32) * 5 / 9
+
+                direction = market.threshold_direction
+                if direction == "above":
+                    outcome = actual_c >= threshold_c
+                elif direction == "below":
+                    outcome = actual_c <= threshold_c
+                else:
+                    outcome = abs(actual_c - threshold_c) <= 0.5
+
                 logger.info(
-                    f"Cannot auto-resolve {market.id} '{market.title[:50]}' — "
-                    f"no weather data available"
+                    f"Resolving {market.id} via weather fallback: "
+                    f"actual={actual_c:.1f}°C, threshold={threshold_c:.1f}°C "
+                    f"({direction}) → outcome={'YES' if outcome else 'NO'}"
                 )
-                continue
-
-            # Convert market threshold to Celsius for comparison
-            threshold_c = market.threshold
-            if market.threshold_unit == "fahrenheit":
-                threshold_c = (market.threshold - 32) * 5 / 9
-
-            # Determine YES/NO outcome based on direction
-            direction = market.threshold_direction  # "above", "below", or "exact"
-            if direction == "above":
-                outcome = actual_c >= threshold_c
-            elif direction == "below":
-                outcome = actual_c <= threshold_c
-            else:
-                outcome = abs(actual_c - threshold_c) <= 0.5
-
-            logger.info(
-                f"Resolving {market.id}: actual={actual_c:.1f}°C, "
-                f"threshold={threshold_c:.1f}°C ({direction}) → outcome={'YES' if outcome else 'NO'}"
-            )
 
             resolved_trade = self.paper_trader.resolve_trade(market.id, outcome)
             if resolved_trade:
