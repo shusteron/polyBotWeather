@@ -1,5 +1,5 @@
 {
-  "capital": 15712.287,
+  "capital": 15311.487,
   "trades": [
     {
       "signal": {
@@ -310,6 +310,130 @@
       "status": "CLOSED",
       "outcome": false,
       "pnl": 2032.4082
+    },
+    {
+      "signal": {
+        "market_id": "2416309",
+        "action": "BUY_YES",
+        "model_probability": 0.8921161825726142,
+        "market_probability": 0.275,
+        "edge": 0.6171161825726141,
+        "confidence_score": {
+          "total": 58.83,
+          "ensemble_spread_score": 76.96,
+          "stability_score": 99.23,
+          "calibration_score": 0.49,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 14.46,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 76.96,
+            "stability": 99.23,
+            "calibration": 0.49,
+            "liquidity": 14.46,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2416309",
+        "title": "Will the highest temperature in Los Angeles be 74\u00b0F or higher on June 4?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 74.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-04T12:00:00Z",
+        "yes_price": 0.275,
+        "no_price": 0.725,
+        "spread": 0.0,
+        "liquidity": 808.7574,
+        "volume": 2179.59789,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-06-03T11:49:40.112061",
+      "paper_fill_price": 0.277,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
+    },
+    {
+      "signal": {
+        "market_id": "2424766",
+        "action": "BUY_YES",
+        "model_probability": 0.8423236514522822,
+        "market_probability": 0.255,
+        "edge": 0.5873236514522822,
+        "confidence_score": {
+          "total": 56.55,
+          "ensemble_spread_score": 75.05,
+          "stability_score": 99.57,
+          "calibration_score": 0.49,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 2.0,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 75.05,
+            "stability": 99.57,
+            "calibration": 0.49,
+            "liquidity": 2.0,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 200.0,
+        "recommended_size": 200.0
+      },
+      "market": {
+        "id": "2424766",
+        "title": "Will the highest temperature in Los Angeles be 74\u00b0F or higher on June 5?",
+        "location": "Los Angeles",
+        "event_type": "temperature",
+        "threshold": 74.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-06-05T12:00:00Z",
+        "yes_price": 0.255,
+        "no_price": 0.745,
+        "spread": 0.0,
+        "liquidity": 198.1611,
+        "volume": 437.58275599999996,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/ca/los-angeles/KLAX",
+        "resolution_station": "KLAX"
+      },
+      "timestamp": "2026-06-03T11:50:20.867585",
+      "paper_fill_price": 0.257,
+      "paper_size": 200.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
     }
   ]
 }
