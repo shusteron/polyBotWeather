@@ -1,5 +1,5 @@
 {
-  "capital": 9075.9356,
+  "capital": 15712.287,
   "trades": [
     {
       "signal": {
@@ -59,9 +59,9 @@
       "timestamp": "2026-05-31T07:21:06.739297",
       "paper_fill_price": 0.292,
       "paper_size": 200.0,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": true,
+      "pnl": 484.9315
     },
     {
       "signal": {
@@ -121,9 +121,9 @@
       "timestamp": "2026-05-31T07:21:34.680005",
       "paper_fill_price": 0.067,
       "paper_size": 195.99,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": false,
+      "pnl": 2729.2339
     },
     {
       "signal": {
@@ -183,9 +183,9 @@
       "timestamp": "2026-05-31T07:21:43.879539",
       "paper_fill_price": 0.177,
       "paper_size": 192.06,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": false,
+      "pnl": -192.06
     },
     {
       "signal": {
@@ -245,9 +245,9 @@
       "timestamp": "2026-05-31T07:21:47.031680",
       "paper_fill_price": 0.222,
       "paper_size": 188.22,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": true,
+      "pnl": 659.6178
     },
     {
       "signal": {
@@ -307,9 +307,9 @@
       "timestamp": "2026-05-31T09:40:12.988085",
       "paper_fill_price": 0.067,
       "paper_size": 145.95,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": false,
+      "pnl": 2032.4082
     }
   ]
 }
