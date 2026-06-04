@@ -65,9 +65,9 @@
     "market_probability": 0.275,
     "edge": 0.6171161825726141,
     "confidence": 58.83,
-    "outcome": null,
+    "outcome": true,
     "resolution_date": "2026-06-04T12:00:00Z",
-    "pnl": null,
+    "pnl": 522.0217,
     "location": "Los Angeles",
     "direction_type": "contrarian"
   },
