@@ -17,15 +17,19 @@ class TradeFilter:
     """
     Disciplined NO_TRADE bias — every check must pass.
 
-    Key improvements over v1:
-      • Minimum entry price — rejects sub-cent lottery tickets
-      • Dynamic edge requirement — when model and market lean the SAME direction
-        (e.g. both say YES is likely, but disagree on how likely) a much larger
-        gap is required, because weather models are not precise enough to
-        reliably distinguish 86% from 99.7%.  When the model is genuinely
-        contrarian to the market the bar is lower.
-      • Zone reliability gate — once enough calibration history exists, skip
-        probability zones where the model has proven inaccurate.
+    Core philosophy (v3):
+      • Trust the market — Polymarket prices reflect sophisticated bettors with
+        current forecasts.  Going contrarian requires strong evidence.
+      • No consensus bets — never bet against a market that is ≥85% sure of
+        an outcome.  At that level, the market is almost certainly right.
+      • Contrarian edge cap — if the model disagrees with the market by more
+        than max_contrarian_edge, the model is probably miscalibrated.  A 40%+
+        gap vs. an efficient market signals a bug, not an opportunity.
+      • Same-direction precision — when model and market agree on the likely
+        outcome, a small edge (8%) is sufficient: we're adding precision, not
+        fighting consensus.
+      • Small calibration bets — until zone reliability data accumulates, keep
+        bets small so mistakes are cheap lessons, not big losses.
     """
 
     def __init__(
@@ -41,17 +45,27 @@ class TradeFilter:
         min_provider_agreement: float = 0.6,
         # Overall confidence
         min_confidence: float = 72.0,
-        # --- New in v2 ---
         # Price floor — never buy a side priced below this
-        min_market_price: float = 0.005,
-        # Edge requirements split by direction alignment
-        min_edge_same_direction: float = 0.30,  # both model+market lean same way
-        min_edge_contrarian: float = 0.15,       # model and market disagree on direction
-        # Zone reliability (0-100).  Only enforced once enough samples exist.
+        min_market_price: float = 0.02,
+        # ── Market consensus guard ───────────────────────────────────────────
+        # Block trades where the market is already ≥85% sure of one outcome.
+        # Those markets are nearly priced-in; the risk/reward is unattractive
+        # and the model's edge is unreliable at the tails.
+        max_market_consensus: float = 0.85,
+        # ── Edge requirements ────────────────────────────────────────────────
+        # Same direction: model and market agree on the likely winner —
+        #   just add precision, low bar.
+        # Contrarian: model disagrees with market direction —
+        #   extraordinary claim, requires strong evidence.
+        min_edge_same_direction: float = 0.08,
+        min_edge_contrarian: float = 0.35,
+        # Contrarian edge cap: if the model-vs-market gap exceeds this in a
+        # contrarian direction, the model is likely wrong, not the market.
+        max_contrarian_edge: float = 0.40,
+        # Zone reliability (0-100). Only enforced once enough samples exist.
         min_zone_reliability: float = 40.0,
-        # Minimum model probability for the side being purchased.
-        # Prevents buying a side the model itself considers unlikely (e.g. model=68% YES → don't buy NO).
-        min_purchased_side_prob: float = 0.35,
+        # Model must give at least this probability to the side being purchased.
+        min_purchased_side_prob: float = 0.20,
     ):
         self.min_liquidity             = min_liquidity
         self.max_spread_pct            = max_spread_pct
@@ -62,8 +76,10 @@ class TradeFilter:
         self.min_provider_agreement    = min_provider_agreement
         self.min_confidence            = min_confidence
         self.min_market_price          = min_market_price
+        self.max_market_consensus      = max_market_consensus
         self.min_edge_same_direction   = min_edge_same_direction
         self.min_edge_contrarian       = min_edge_contrarian
+        self.max_contrarian_edge       = max_contrarian_edge
         self.min_zone_reliability      = min_zone_reliability
         self.min_purchased_side_prob   = min_purchased_side_prob
 
@@ -138,44 +154,56 @@ class TradeFilter:
                 f"Confidence too low: {confidence.total:.1f} < {self.min_confidence:.1f}"
             )
 
-        # 9. Minimum entry price (NO LOTTERY TICKETS)
-        #    The side we are buying must be priced above min_market_price.
+        # 9. Minimum entry price (no lottery tickets)
         entry_price = market.yes_price if edge > 0 else market.no_price
         if entry_price < self.min_market_price:
             rejection_reasons.append(
-                f"Entry price too low: {entry_price:.4f} < {self.min_market_price:.4f} "
-                f"(sub-cent bets have too much variance)"
+                f"Entry price too low: {entry_price:.4f} < {self.min_market_price:.4f}"
             )
 
-        # 10. Dynamic edge — requirement depends on whether model and market
-        #     lean the SAME direction or OPPOSITE directions.
-        #
-        #     Same direction example: model=86% YES, market=99.7% YES
-        #     → both say YES is likely; the model is just less confident.
-        #     Weather models are NOT precise enough at the 85-99% range to
-        #     reliably distinguish these.  Require a large gap (default 30%).
-        #
-        #     Contrarian example: model=39% YES, market=1.6% YES
-        #     → market says nearly impossible; model says real chance.
-        #     This is a strong structural disagreement. Lower bar (default 15%).
+        # 10. Market consensus guard — don't bet against a market that is
+        #     already ≥max_market_consensus sure of an outcome.
+        #     BUY_YES against a strong NO consensus, or BUY_NO against a
+        #     strong YES consensus, are the trades that historically lose.
+        buying_yes = edge > 0
+        if buying_yes and market.yes_price < (1.0 - self.max_market_consensus):
+            rejection_reasons.append(
+                f"Market consensus too strong for NO "
+                f"({market.yes_price:.0%} YES < {1-self.max_market_consensus:.0%}): "
+                f"do not buy YES against this"
+            )
+        elif not buying_yes and market.yes_price > self.max_market_consensus:
+            rejection_reasons.append(
+                f"Market consensus too strong for YES "
+                f"({market.yes_price:.0%} YES > {self.max_market_consensus:.0%}): "
+                f"do not buy NO against this"
+            )
+
+        # 11. Edge requirement — split by direction alignment.
+        #     Same direction (model and market agree on the likely winner):
+        #       small edge (8%) is enough — we're adding precision, not fighting consensus.
+        #     Contrarian (model opposes market direction):
+        #       requires large edge (35%) AND edge must not be absurdly large
+        #       (>40% gap vs an efficient market means the model is probably wrong).
         model_leans_yes  = model_prob > 0.5
         market_leans_yes = market.yes_price > 0.5
         same_direction   = (model_leans_yes == market_leans_yes)
 
-        required_edge = (
-            self.min_edge_same_direction if same_direction
-            else self.min_edge_contrarian
-        )
+        required_edge  = self.min_edge_same_direction if same_direction else self.min_edge_contrarian
         direction_label = "same-direction" if same_direction else "contrarian"
 
         if abs(edge) < required_edge:
             rejection_reasons.append(
-                f"Insufficient {direction_label} edge: "
-                f"|{edge:.4f}| < {required_edge:.4f}"
+                f"Insufficient {direction_label} edge: |{edge:.4f}| < {required_edge:.4f}"
             )
 
-        # 11. Zone reliability — once we have enough history, skip zones
-        #     where the model has consistently been wrong.
+        if not same_direction and abs(edge) > self.max_contrarian_edge:
+            rejection_reasons.append(
+                f"Contrarian edge too large: |{edge:.0%}| > {self.max_contrarian_edge:.0%} "
+                f"— model likely miscalibrated vs market"
+            )
+
+        # 12. Zone reliability
         if zone_sample_count >= min_zone_samples:
             if zone_reliability < self.min_zone_reliability:
                 rejection_reasons.append(
@@ -184,9 +212,7 @@ class TradeFilter:
                     f"(n={zone_sample_count})"
                 )
 
-        # 12. Model must believe in the side being purchased.
-        #     If edge > 0 we buy YES; if edge < 0 we buy NO.
-        #     Blocks cases like: model=68% YES → edge negative → buy NO at 32% model prob.
+        # 13. Model must believe in the side being purchased.
         purchased_side_prob = model_prob if edge > 0 else (1.0 - model_prob)
         if purchased_side_prob < self.min_purchased_side_prob:
             side = "YES" if edge > 0 else "NO"
@@ -232,9 +258,11 @@ class TradeFilter:
             min_threshold_distance   = t.get("min_threshold_distance",    2.0),
             min_provider_agreement   = t.get("min_provider_agreement",    0.6),
             min_confidence           = t.get("min_confidence",            72.0),
-            min_market_price         = t.get("min_market_price",          0.005),
-            min_edge_same_direction  = t.get("min_edge_same_direction",   0.30),
-            min_edge_contrarian      = t.get("min_edge_contrarian",       0.15),
+            min_market_price         = t.get("min_market_price",          0.02),
+            max_market_consensus     = t.get("max_market_consensus",      0.85),
+            min_edge_same_direction  = t.get("min_edge_same_direction",   0.08),
+            min_edge_contrarian      = t.get("min_edge_contrarian",       0.35),
+            max_contrarian_edge      = t.get("max_contrarian_edge",       0.40),
             min_zone_reliability     = t.get("min_zone_reliability",      40.0),
-            min_purchased_side_prob  = t.get("min_purchased_side_prob",   0.35),
+            min_purchased_side_prob  = t.get("min_purchased_side_prob",   0.20),
         )

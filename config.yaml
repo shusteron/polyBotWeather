@@ -18,11 +18,11 @@ weather:
     - "bom_access_global_ensemble"  # 17 members — Australian BOM
   model_weights:
     nws_point: 0.40         # NWS MOS station-calibrated — matches Polymarket source
-    ecmwf_ifs025: 0.24      # reduced from 0.40
-    gfs025: 0.15            # reduced from 0.25
-    icon_seamless: 0.12     # reduced from 0.20
-    gem_global: 0.06        # reduced from 0.10
-    bom_access_global_ensemble: 0.03  # reduced from 0.05
+    ecmwf_ifs025: 0.24
+    gfs025: 0.15
+    icon_seamless: 0.12
+    gem_global: 0.06
+    bom_access_global_ensemble: 0.03
   request_timeout: 30
   min_ensemble_members: 50   # reject if total members below this
 
@@ -33,17 +33,17 @@ risk:
   kelly_fraction: 0.25       # conservative fractional Kelly
   starting_capital: 10000.0
   min_kelly_bet: 10.0
-  max_single_bet: 200.0      # hard cap per trade
+  max_single_bet: 75.0       # reduced from $200 — small bets during calibration phase
 
 thresholds:
   # ── Confidence ──────────────────────────────────────────────────────────
-  min_confidence: 55
+  min_confidence: 52
 
   # ── Forecast quality ────────────────────────────────────────────────────
   max_ensemble_spread: 0.15      # weighted_std / 10 → reject if std > 1.5°C
   min_threshold_distance: 1.5    # forecast must be >1.5°C away from threshold
-  min_provider_agreement: 0.65
-  min_stability_score: 0.55
+  min_provider_agreement: 0.60
+  min_stability_score: 0.50
 
   # ── Market quality ───────────────────────────────────────────────────────
   min_liquidity: 50              # minimum $ in the market
@@ -51,27 +51,36 @@ thresholds:
   min_hours_to_resolution: 6     # don't enter if resolving in < 6 hours
 
   # ── Price floor (no lottery tickets) ────────────────────────────────────
-  # The side we are buying must be priced above this.
-  # 0.02 = 2 cents minimum. Sub-2-cent bets require extreme model precision
-  # that weather ensembles cannot provide.
   min_market_price: 0.02
 
-  # ── Dynamic edge requirement ─────────────────────────────────────────────
-  # When the model and the market AGREE on direction (both lean YES, or
-  # both lean NO) but disagree on the exact probability, the gap must be
-  # very large.  Weather ensemble models are NOT precise enough at the
-  # tails to reliably distinguish 86% from 99.7%.
+  # ── Market consensus guard ───────────────────────────────────────────────
+  # Never bet against a market that is ≥85% sure of one outcome.
+  # Polymarket bettors at 93%+ are almost always right.
+  # Blocks: BUY_NO when market YES > 85%, BUY_YES when market YES < 15%.
+  max_market_consensus: 0.85
+
+  # ── Edge requirements ─────────────────────────────────────────────────────
+  # SAME DIRECTION (model and market agree on the likely outcome):
+  #   We're adding precision to the market signal. 8% edge is sufficient.
+  #   Example: market=45% YES, model=55% YES → edge=10% → TRADE ✓
   #
-  # When the model DISAGREES with the market direction (model says 39%,
-  # market says 1.6%) that is a strong structural signal — lower bar.
-  min_edge_same_direction: 0.30  # e.g. model=86%, market=99.7% → gap=13.7% < 30% → skip
-  min_edge_contrarian: 0.20      # e.g. model=39%, market=1.6%  → gap=37.4% > 20% → trade
-  min_purchased_side_prob: 0.35  # model must give ≥35% to the side being purchased (blocks model=68% YES → buy NO)
+  # CONTRARIAN (model opposes market direction):
+  #   Extraordinary claim — requires 35% minimum edge.
+  #   Also capped at 40%: if model-market gap is >40% contrarian, the
+  #   model is probably miscalibrated (the market is not that wrong).
+  #   Example: market=29% YES, model=84% YES → edge=55% contrarian → BLOCKED ✓
+  min_edge_same_direction: 0.08
+  min_edge_contrarian: 0.35
+  max_contrarian_edge: 0.40
+
+  # ── Model probability floor ──────────────────────────────────────────────
+  # Model must give ≥20% to the side being purchased.
+  # Lowered from 0.35 — allows moderate-probability same-direction trades.
+  min_purchased_side_prob: 0.20
 
   # ── Zone reliability gate ────────────────────────────────────────────────
-  # Once ≥20 resolved records exist in a probability band (0-10%, 10-20%…)
-  # skip that band if the model's Brier-based score is below this.
-  # Has no effect until enough calibration data is collected.
+  # Once ≥20 resolved records exist in a probability band, skip zones where
+  # the model has consistently been wrong. No effect until enough data.
   min_zone_reliability: 40.0
   min_zone_samples: 20
 
