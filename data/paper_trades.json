@@ -1,5 +1,5 @@
 {
-  "capital": 16033.5087,
+  "capital": 8675.1356,
   "trades": [
     {
       "signal": {
@@ -60,8 +60,8 @@
       "paper_fill_price": 0.292,
       "paper_size": 200.0,
       "status": "CLOSED",
-      "outcome": true,
-      "pnl": 484.9315
+      "outcome": false,
+      "pnl": -200.0
     },
     {
       "signal": {
@@ -122,8 +122,8 @@
       "paper_fill_price": 0.067,
       "paper_size": 195.99,
       "status": "CLOSED",
-      "outcome": false,
-      "pnl": 2729.2339
+      "outcome": true,
+      "pnl": -195.99
     },
     {
       "signal": {
@@ -246,8 +246,8 @@
       "paper_fill_price": 0.222,
       "paper_size": 188.22,
       "status": "CLOSED",
-      "outcome": true,
-      "pnl": 659.6178
+      "outcome": false,
+      "pnl": -188.22
     },
     {
       "signal": {
@@ -308,8 +308,8 @@
       "paper_fill_price": 0.067,
       "paper_size": 145.95,
       "status": "CLOSED",
-      "outcome": false,
-      "pnl": 2032.4082
+      "outcome": true,
+      "pnl": -145.95
     },
     {
       "signal": {
@@ -369,9 +369,9 @@
       "timestamp": "2026-06-03T11:49:40.112061",
       "paper_fill_price": 0.277,
       "paper_size": 200.0,
-      "status": "CLOSED",
-      "outcome": true,
-      "pnl": 522.0217
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
     },
     {
       "signal": {

@@ -197,12 +197,19 @@ class EliteWeatherBot:
         # London May 24 appears ~12 times; fetch once, reuse for all brackets
         self._forecast_cache: dict = {}
 
+        skip_counts: dict[str, int] = {}
         for market in markets:
             try:
-                self._process_market(market, open_trades)
+                reason = self._process_market(market, open_trades)
+                if reason:
+                    skip_counts[reason] = skip_counts.get(reason, 0) + 1
             except Exception as exc:
                 self.trade_logger.log_error(f"process_market({market.id})", exc)
                 logger.exception(f"Unhandled error processing market {market.id}")
+
+        if skip_counts:
+            summary = " | ".join(f"{r}: {n}" for r, n in sorted(skip_counts.items()))
+            logger.info(f"Scan skips — {summary}")
 
         # Save stability history once after all markets processed
         self.stability_engine.save()
@@ -215,31 +222,27 @@ class EliteWeatherBot:
         )
         logger.info("=== Scan cycle complete ===")
 
-    def _process_market(self, market: MarketData, open_trades: list[Trade]) -> None:
-        """Process a single market through the full analysis pipeline."""
+    def _process_market(self, market: MarketData, open_trades: list[Trade]) -> Optional[str]:
+        """
+        Process a single market through the full analysis pipeline.
+        Returns a short skip-reason string, or None if the market was acted on
+        (traded or rejected by the filter with a logged reason).
+        """
         # 2. Resolve coordinates
         coords = self._get_coords(market)
         if not coords:
-            logger.debug(f"Skipping {market.id} — no coordinates for location '{market.location}'")
-            return
+            return "no-coords"
 
         lat, lon = coords
 
         # 2b. Only trade markets where NWS coverage is available (US cities).
-        # Non-US cities rely solely on Open-Meteo gridded data which has a
-        # systematic bias of 5-10°F vs ASOS station readings. Until a calibrated
-        # station-level forecast source exists for non-US cities, skip them.
         if not self._has_nws_coverage(lat, lon, market.location or ""):
-            logger.debug(
-                f"Skipping {market.id} ({market.location}) — outside NWS coverage area"
-            )
-            return
+            return "non-US"
 
         # 3. Determine target date from resolution date
         target_date = self._get_target_date(market)
         if not target_date:
-            logger.debug(f"Skipping {market.id} — cannot determine target date")
-            return
+            return "no-date"
 
         # 4. Determine measurement type from market title
         title_lower = market.title.lower()
@@ -289,8 +292,8 @@ class EliteWeatherBot:
                     station_check = float(station_temp)
                     logger.debug(f"Station {icao} current temp: {station_check:.1f}°C")
         if not forecasts:
-            logger.debug(f"Skipping {market.id} — no forecast data available")
-            return
+            logger.info(f"Skipping {market.id} ({market.location} {target_date}) — no forecast data (NWS+ensemble both failed)")
+            return "no-forecast"
 
         # 5. Track stability
         for forecast in forecasts:
@@ -309,8 +312,7 @@ class EliteWeatherBot:
 
         # 7. Calculate model probability using the correct direction
         if market.threshold is None:
-            logger.debug(f"Skipping {market.id} — no threshold defined")
-            return
+            return "no-threshold"
 
         direction = market.threshold_direction  # "exact", "above", "below"
 
@@ -389,7 +391,7 @@ class EliteWeatherBot:
                 "confidence": confidence.total,
                 "rejection_reasons": rejection_reasons,
             })
-            return
+            return None
 
         # 14. Correlation check
         corr_score = self.correlation_detector.get_correlated_exposure(
@@ -417,7 +419,7 @@ class EliteWeatherBot:
                 "confidence": confidence.total,
                 "rejection_reasons": [reason],
             })
-            return
+            return None
 
         # 15. Kelly sizing
         entry_price = market.yes_price if direction == "BUY_YES" else market.no_price
@@ -444,7 +446,7 @@ class EliteWeatherBot:
         if approved_size <= 0:
             reason = "Risk manager rejected trade (size=0)"
             self.trade_logger.log_trade_rejected(market, [reason])
-            return
+            return None
 
         signal.recommended_size = approved_size
 
