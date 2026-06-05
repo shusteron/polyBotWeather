@@ -1,5 +1,5 @@
 {
-  "capital": 9397.1573,
+  "capital": 10175.3674,
   "trades": [
     {
       "signal": {
@@ -431,9 +431,9 @@
       "timestamp": "2026-06-03T11:50:20.867585",
       "paper_fill_price": 0.257,
       "paper_size": 200.0,
-      "status": "OPEN",
-      "outcome": null,
-      "pnl": null
+      "status": "CLOSED",
+      "outcome": true,
+      "pnl": 578.2101
     }
   ]
 }
