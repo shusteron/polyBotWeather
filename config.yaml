@@ -61,15 +61,17 @@ thresholds:
 
   # ── Edge requirements ─────────────────────────────────────────────────────
   # SAME DIRECTION (model and market agree on the likely outcome):
-  #   We're adding precision to the market signal. 8% edge is sufficient.
-  #   Example: market=45% YES, model=55% YES → edge=10% → TRADE ✓
+  #   We're adding precision to the market signal. 2% edge is sufficient —
+  #   take small, frequent, high-probability edges rather than waiting for
+  #   rare big ones.
+  #   Example: market=95% YES, model=97% YES → edge=2% → TRADE ✓
   #
   # CONTRARIAN (model opposes market direction):
   #   Extraordinary claim — requires 35% minimum edge.
   #   Also capped at 40%: if model-market gap is >40% contrarian, the
   #   model is probably miscalibrated (the market is not that wrong).
   #   Example: market=29% YES, model=84% YES → edge=55% contrarian → BLOCKED ✓
-  min_edge_same_direction: 0.08
+  min_edge_same_direction: 0.02
   min_edge_contrarian: 0.35
   max_contrarian_edge: 0.40
 
