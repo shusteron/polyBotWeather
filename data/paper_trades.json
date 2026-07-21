@@ -1,5 +1,5 @@
 {
-  "capital": 10175.3674,
+  "capital": 10100.2174,
   "trades": [
     {
       "signal": {
@@ -434,6 +434,68 @@
       "status": "CLOSED",
       "outcome": true,
       "pnl": 578.2101
+    },
+    {
+      "signal": {
+        "market_id": "3009102",
+        "action": "BUY_YES",
+        "model_probability": 0.35269709543568467,
+        "market_probability": 0.245,
+        "edge": 0.10769709543568468,
+        "confidence_score": {
+          "total": 67.19,
+          "ensemble_spread_score": 70.67,
+          "stability_score": 65.0,
+          "calibration_score": 26.83,
+          "threshold_distance_score": 0.0,
+          "liquidity_score": 100.0,
+          "horizon_score": 100.0,
+          "breakdown": {
+            "ensemble_spread": 70.67,
+            "stability": 65.0,
+            "calibration": 26.83,
+            "liquidity": 100.0,
+            "horizon": 100.0,
+            "zone_reliability": 50.0,
+            "city_reliability": 50.0,
+            "weights": {
+              "ensemble_spread": 0.25,
+              "stability": 0.2,
+              "calibration": 0.15,
+              "liquidity": 0.15,
+              "horizon": 0.1,
+              "zone_reliability": 0.1,
+              "city_reliability": 0.05
+            }
+          }
+        },
+        "rejection_reasons": [],
+        "kelly_size": 75.0,
+        "recommended_size": 75.0
+      },
+      "market": {
+        "id": "3009102",
+        "title": "Will the highest temperature in Denver be 94\u00b0F or higher on July 22?",
+        "location": "Denver",
+        "event_type": "temperature",
+        "threshold": 94.0,
+        "threshold_unit": "fahrenheit",
+        "threshold_direction": "above",
+        "resolution_date": "2026-07-22T12:00:00Z",
+        "yes_price": 0.245,
+        "no_price": 0.755,
+        "spread": 0.0,
+        "liquidity": 5836.8528,
+        "volume": 2082.640699,
+        "resolution_source": "https://www.wunderground.com/history/daily/us/co/aurora/KBKF",
+        "resolution_station": "KBKF"
+      },
+      "timestamp": "2026-07-21T09:20:33.376393",
+      "paper_fill_price": 0.247,
+      "paper_size": 75.0,
+      "status": "OPEN",
+      "outcome": null,
+      "pnl": null
     }
   ]
 }
