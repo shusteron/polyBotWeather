@@ -94,5 +94,17 @@
     "pnl": 228.6437,
     "location": "Denver",
     "direction_type": "same"
+  },
+  {
+    "market_id": "5229022",
+    "predicted_probability": 0.4149377593360996,
+    "market_probability": 0.29,
+    "edge": 0.12493775933609963,
+    "confidence": 53.13,
+    "outcome": null,
+    "resolution_date": "2026-10-05T12:00:00Z",
+    "pnl": null,
+    "location": "Los Angeles",
+    "direction_type": "same"
   }
 ]
